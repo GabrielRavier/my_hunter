@@ -1,0 +1,7 @@
+# Libmy produced files
+/include/my*
+/lib/libmy.a
+
+# Files produced by us
+/my_hunter
+/obj/
