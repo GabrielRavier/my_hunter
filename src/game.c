@@ -22,8 +22,10 @@ static void set_top_score(int top_score)
     static const int all_rw = 0666;
     int fd = open("top_score.txt", O_WRONLY | O_CREAT | O_TRUNC, all_rw);
 
-    if (fd < 0)
+    if (fd < 0) {
+        my_dputs("Failed to open top_score.txt\n", STDERR_FILENO);
         return;
+    }
     my_dprintf(fd, "%d", top_score);
     close(fd);
 }
