@@ -8,10 +8,6 @@
 #include "game.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
-#include <SFML/Graphics/Color.h>
-#include <SFML/Graphics/Font.h>
-#include <SFML/Graphics/RenderWindow.h>
-#include <SFML/Graphics/Text.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
