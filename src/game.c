@@ -40,7 +40,7 @@ static int get_top_score(void)
 
     if (!score_file)
         return 12000;
-    bytes_read = fread(buffer, 100, 1, score_file);
+    bytes_read = fread(buffer, 1, 99, score_file);
     buffer[bytes_read] = '\0';
     result = my_strtol_base_str(buffer, NULL, "0123456789");
     fclose(score_file);
