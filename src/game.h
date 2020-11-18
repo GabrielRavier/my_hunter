@@ -12,6 +12,8 @@
 
 struct game {
     sfRenderWindow *window;
+    sfTexture *title_background_texture;
+    sfSprite *title_background_sprite;
     int max_score;
 };
 
