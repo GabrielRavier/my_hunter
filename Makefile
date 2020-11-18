@@ -24,12 +24,12 @@ BINARY_NAME := my_hunter
 all: $(BINARY_NAME)
 
 # Sources for this project
-SOURCE_FILES := main
+SOURCE_FILES := main game
 
 OBJECT_FILES := $(addprefix obj/, $(addsuffix .o, $(SOURCE_FILES)))
 
 $(BINARY_NAME): libmy $(OBJECT_FILES)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECT_FILES) -lmy -lcsfml-system
+	$(CC) $(LDFLAGS) -o $@ $(OBJECT_FILES) -lmy -lcsfml-graphics
 
 obj/%.o: src/%.c libmy
 	mkdir --parents obj

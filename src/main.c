@@ -5,9 +5,11 @@
 ** Implements main
 */
 
-#include <SFML/Audio.h>
+#include "game.h"
+#include <SFML/Graphics.h>
 #include "my/stdio.h"
 #include "my/string.h"
+
 
 static int usage(const char *program_name)
 {
@@ -20,6 +22,12 @@ static int usage(const char *program_name)
 
 int main(int argc, char **argv)
 {
+    struct game game;
+
     if (argc >= 2 && (my_strcmp(argv[1], "-h") == 0))
         return usage(argv[0]);
+    if (!game_create(&game))
+        return 84;
+    game_main_loop(&game);
+    game_destroy(&game);
 }
