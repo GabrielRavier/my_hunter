@@ -8,7 +8,9 @@
 #include "game.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
+#include "my/assert.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -28,17 +30,25 @@ static void set_top_score(int top_score)
 static int get_top_score(void)
 {
     FILE *score_file = fopen("top_score.txt", "r");
-    char buffer[100];
+    char buffer[7];
     int bytes_read;
     int result;
 
     if (!score_file)
         return 12000;
-    bytes_read = fread(buffer, 1, 99, score_file);
+    bytes_read = fread(buffer, 1, 6, score_file);
     buffer[bytes_read] = '\0';
     result = my_strtol_base_str(buffer, NULL, "0123456789");
     fclose(score_file);
     return result;
+}
+
+static void text_set_int(sfText *text, int val)
+{
+    char *val_as_string;
+    MY_ASSERT(my_asprintf(&val_as_string, "%d", val) >= 0);
+    sfText_setString(text, val_as_string);
+    free(val_as_string);
 }
 
 // We can't disable font anti-aliasing. Oh well, I guess the game will only be
@@ -67,7 +77,7 @@ bool game_create(struct game *self)
     self->top_score_text = sfText_create();
     sfText_setFont(self->top_score_text, self->nes_font);
     sfText_setCharacterSize(self->top_score_text, 8);
-    sfText_setString(self->top_score_text, "12000");
+    text_set_int(self->top_score_text, self->top_score);
     sfText_setColor(self->top_score_text, sfColor_fromRGB(76, 220, 72));
     sfText_setPosition(self->top_score_text, (sfVector2f){191 -
         sfText_getGlobalBounds(self->top_score_text).width, 183});
