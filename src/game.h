@@ -12,15 +12,26 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// selected_game is either 0, 1, or 2 to A, B or C
 struct game {
     sfRenderWindow *window;
-    sfFont *nes_font;
     sfTexture *title_background_texture;
+    sfTexture *title_cursor_texture;
+    sfTexture *gameplay_background_texture;
     sfSprite *title_background_sprite;
+    sfSprite *title_cursor_sprite;
+    sfSprite *gameplay_background_sprite;
+    sfFont *nes_font;
     int32_t top_score;
     sfText *top_score_text;
-    sfMusic *title_music;
-    uintmax_t frames;
+    sfMusic *current_music;
+    int selected_game;
+    uintmax_t frames_since_mode_begin;
+    enum game_mode {
+        GAME_MODE_NONE,
+        GAME_MODE_TITLE,
+        GAME_MODE_START_ROUND,
+    } mode;
 };
 
 bool game_create(struct game *self);

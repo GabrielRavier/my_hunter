@@ -27,6 +27,7 @@ int main(int argc, char **argv)
         return usage(argv[0]);
     if (!game_create(&game)) {
         my_dputs("Failed to initialize game\n", STDERR_FILENO);
+        game_destroy(&game);
         return 84;
     }
     game_main_loop(&game);
