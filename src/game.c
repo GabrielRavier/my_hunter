@@ -95,6 +95,10 @@ bool game_create(struct game *self)
         "assets/ducks.png", NULL);
     if (!self->ducks_texture)
         return (false);
+    self->dog_texture = sfTexture_createFromFile(
+        "assets/dog.png", NULL);
+    if (!self->dog_texture)
+        return (false);
     self->title_background_sprite = sfSprite_create();
     if (!self->title_background_sprite)
         return (false);
@@ -118,6 +122,11 @@ bool game_create(struct game *self)
     sfSprite_setTextureRect(self->text_box_sprite,
          (sfIntRect){184, 127, 233 - 184, 160 - 127});
     sfSprite_setPosition(self->text_box_sprite, (sfVector2f){104, 48});
+    self->dog_sprite = sfSprite_create();
+    if (!self->dog_sprite)
+        return (false);
+    sfSprite_setTexture(self->dog_sprite, self->dog_texture, false);
+    sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 0, 0, 0});
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
         return (false);
@@ -195,6 +204,9 @@ static void game_set_mode(struct game *self, enum game_mode mode)
             self->current_round);
         sfText_setColor(self->text_box_text, sfColor_fromRGB(252, 252, 252));
         game_center_text_box_text(self);
+        sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 13, 55,
+            56 - 13});
+        sfSprite_setPosition(self->dog_sprite, (sfVector2f){4, 136});
     }
 }
 
@@ -263,6 +275,7 @@ static void game_draw(struct game *self)
         sfRectangleShape_destroy(black_rectangle);
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
         sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
+        sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
     }
     if (self->should_draw_text_box) {
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
@@ -301,10 +314,12 @@ void game_destroy(struct game *self)
     sfText_destroy(self->top_score_text);
     set_top_score(self->top_score);
     sfFont_destroy(self->nes_font);
+    sfSprite_destroy(self->dog_sprite);
     sfSprite_destroy(self->text_box_sprite);
     sfSprite_destroy(self->gameplay_background_sprite);
     sfSprite_destroy(self->title_cursor_sprite);
     sfSprite_destroy(self->title_background_sprite);
+    sfTexture_destroy(self->dog_texture);
     sfTexture_destroy(self->ducks_texture);
     sfTexture_destroy(self->background_texture);
     sfTexture_destroy(self->cursor_texture);

@@ -19,11 +19,13 @@ struct game {
     sfTexture *cursor_texture;
     sfTexture *background_texture;
     sfTexture *ducks_texture;
+    sfTexture *dog_texture;
     sfSprite *title_background_sprite;
     sfSprite *title_cursor_sprite;
     sfSprite *gameplay_background_sprite;
     bool should_draw_text_box;
     sfSprite *text_box_sprite;
+    sfSprite *dog_sprite;
     sfFont *nes_font;
     int32_t top_score;
     sfText *top_score_text;
