@@ -91,6 +91,10 @@ bool game_create(struct game *self)
         "assets/backgrounds.png", NULL);
     if (!self->background_texture)
         return (false);
+    self->ducks_texture = sfTexture_createFromFile(
+        "assets/ducks.png", NULL);
+    if (!self->ducks_texture)
+        return (false);
     self->title_background_sprite = sfSprite_create();
     if (!self->title_background_sprite)
         return (false);
@@ -100,22 +104,31 @@ bool game_create(struct game *self)
     if (!self->title_cursor_sprite)
         return (false);
     sfSprite_setTexture(self->title_cursor_sprite,
-        self->cursor_texture, false);
+        self->cursor_texture, true);
     self->gameplay_background_sprite = sfSprite_create();
-    if (!self->title_cursor_sprite)
+    if (!self->gameplay_background_sprite)
         return (false);
     sfSprite_setTexture(self->gameplay_background_sprite,
-        self->background_texture, true);
+        self->background_texture, false);
+    self->text_box_sprite = sfSprite_create();
+    if (!self->text_box_sprite)
+        return (false);
+    sfSprite_setTexture(self->text_box_sprite,
+        self->ducks_texture, false);
+    sfSprite_setTextureRect(self->text_box_sprite,
+         (sfIntRect){184, 127, 233 - 184, 160 - 127});
+    sfSprite_setPosition(self->text_box_sprite, (sfVector2f){104, 48});
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
         return (false);
     self->top_score = get_top_score();
     self->top_score_text = make_nes_text(self->nes_font);
-    self->current_score_text = NULL;
     text_set_printf(self->top_score_text, "%" PRId32, self->top_score);
     sfText_setColor(self->top_score_text, sfColor_fromRGB(76, 220, 72));
     sfText_setPosition(self->top_score_text, (sfVector2f){191 -
         sfText_getGlobalBounds(self->top_score_text).width, 183});
+    self->current_score_text = NULL;
+    self->text_box_text = NULL;
     self->current_round_text = NULL;
     self->current_music = NULL;
     self->mode = GAME_MODE_NONE;
@@ -146,11 +159,19 @@ static void game_set_current_score(struct game *self, int new_score)
     sfText_setPosition(self->current_score_text, (sfVector2f){192, 199});
 }
 
+static void game_center_text_box_text(struct game *self)
+{
+    sfText_setPosition(self->text_box_text, (sfVector2f){109, 64 -
+        (int)(sfText_getGlobalBounds(self->text_box_text).height / 2)});
+}
+
 static void game_set_mode(struct game *self, enum game_mode mode)
 {
+    self->frames_since_mode_begin = 0;
     if (self->mode == GAME_MODE_TITLE) {
         sfMusic_destroy(self->current_music);
         self->current_music = NULL;
+        self->selected_game = 0;
         game_set_current_round(self, 1);
         game_set_current_score(self, 0);
         sfSprite_setTextureRect(self->gameplay_background_sprite,
@@ -161,11 +182,19 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         self->current_music = sfMusic_createFromFile("assets/title.ogg");
         MY_ASSERT(self->current_music);
         sfMusic_play(self->current_music);
+        self->should_draw_text_box = false;
     }
     if (self->mode == GAME_MODE_START_ROUND) {
         self->current_music = sfMusic_createFromFile("assets/start_round.ogg");
         MY_ASSERT(self->current_music);
         sfMusic_play(self->current_music);
+        self->should_draw_text_box = true;
+        sfText_destroy(self->text_box_text);
+        self->text_box_text = make_nes_text(self->nes_font);
+        text_set_printf(self->text_box_text, "ROUND\n\n %2d",
+            self->current_round);
+        sfText_setColor(self->text_box_text, sfColor_fromRGB(252, 252, 252));
+        game_center_text_box_text(self);
     }
 }
 
@@ -200,6 +229,9 @@ static void game_update(struct game *self)
         sfSprite_setPosition(self->title_cursor_sprite, (sfVector2f){48, 129 +
             (self->selected_game * 16)});
     }
+    if (self->mode == GAME_MODE_START_ROUND)
+        if (self->frames_since_mode_begin > 130)
+            self->should_draw_text_box = false;
 }
 
 static void game_draw(struct game *self)
@@ -232,6 +264,10 @@ static void game_draw(struct game *self)
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
         sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
     }
+    if (self->should_draw_text_box) {
+        sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
+        sfRenderWindow_drawText(self->window, self->text_box_text, NULL);
+    }
 }
 
 void game_main_loop(struct game *self)
@@ -239,9 +275,6 @@ void game_main_loop(struct game *self)
     sfEvent event;
 
     game_set_mode(self, GAME_MODE_TITLE);
-    self->mode = GAME_MODE_TITLE;
-    self->selected_game = 0;
-    self->frames_since_mode_begin = 0;
     while (sfRenderWindow_isOpen(self->window)) {
         while (sfRenderWindow_pollEvent(self->window, &event)) {
             if (event.type == sfEvtClosed)
@@ -262,14 +295,17 @@ void game_main_loop(struct game *self)
 void game_destroy(struct game *self)
 {
     sfMusic_destroy(self->current_music);
+    sfText_destroy(self->text_box_text);
     sfText_destroy(self->current_round_text);
     sfText_destroy(self->current_score_text);
     sfText_destroy(self->top_score_text);
     set_top_score(self->top_score);
     sfFont_destroy(self->nes_font);
+    sfSprite_destroy(self->text_box_sprite);
     sfSprite_destroy(self->gameplay_background_sprite);
     sfSprite_destroy(self->title_cursor_sprite);
     sfSprite_destroy(self->title_background_sprite);
+    sfTexture_destroy(self->ducks_texture);
     sfTexture_destroy(self->background_texture);
     sfTexture_destroy(self->cursor_texture);
     sfTexture_destroy(self->title_texture);

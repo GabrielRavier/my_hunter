@@ -18,9 +18,12 @@ struct game {
     sfTexture *title_texture;
     sfTexture *cursor_texture;
     sfTexture *background_texture;
+    sfTexture *ducks_texture;
     sfSprite *title_background_sprite;
     sfSprite *title_cursor_sprite;
     sfSprite *gameplay_background_sprite;
+    bool should_draw_text_box;
+    sfSprite *text_box_sprite;
     sfFont *nes_font;
     int32_t top_score;
     sfText *top_score_text;
@@ -28,6 +31,7 @@ struct game {
     sfText *current_score_text;
     int current_round;
     sfText *current_round_text;
+    sfText *text_box_text;
     sfMusic *current_music;
     int selected_game;
     uintmax_t frames_since_mode_begin;
