@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
 
@@ -46,10 +47,14 @@ static int32_t get_top_score(void)
     return result;
 }
 
-static void text_set_int32(sfText *text, int32_t val)
+static void text_set_printf(sfText *text, const char *format, ...)
 {
     char *val_as_string;
-    MY_ASSERT(my_asprintf(&val_as_string, "%" PRId32, val) >= 0);
+    va_list arguments;
+
+    va_start(arguments, format);
+    MY_ASSERT(my_vasprintf(&val_as_string, format, arguments) >= 0);
+    va_end(arguments);
     sfText_setString(text, val_as_string);
     free(val_as_string);
 }
@@ -106,7 +111,8 @@ bool game_create(struct game *self)
         return (false);
     self->top_score = get_top_score();
     self->top_score_text = make_nes_text(self->nes_font);
-    text_set_int32(self->top_score_text, self->top_score);
+    self->current_score_text = NULL;
+    text_set_printf(self->top_score_text, "%" PRId32, self->top_score);
     sfText_setColor(self->top_score_text, sfColor_fromRGB(76, 220, 72));
     sfText_setPosition(self->top_score_text, (sfVector2f){191 -
         sfText_getGlobalBounds(self->top_score_text).width, 183});
@@ -123,9 +129,21 @@ static void game_set_current_round(struct game *self, int new_round)
         self->current_round = 1;
     sfText_destroy(self->current_round_text);
     self->current_round_text = make_nes_text(self->nes_font);
-    text_set_int32(self->current_round_text, self->current_round);
+    text_set_printf(self->current_round_text, "%" PRId32, self->current_round);
     sfText_setColor(self->current_round_text, sfColor_fromRGB(128, 208, 16));
     sfText_setPosition(self->current_round_text, (sfVector2f){40, 183});
+}
+
+static void game_set_current_score(struct game *self, int new_score)
+{
+    self->current_score = new_score;
+    if (self->current_score > 999999)
+        self->current_score = 0;
+    sfText_destroy(self->current_score_text);
+    self->current_score_text = make_nes_text(self->nes_font);
+    text_set_printf(self->current_score_text, "%06" PRId32, self->current_score);
+    sfText_setColor(self->current_score_text, sfColor_fromRGB(252, 252, 252));
+    sfText_setPosition(self->current_score_text, (sfVector2f){192, 199});
 }
 
 static void game_set_mode(struct game *self, enum game_mode mode)
@@ -134,6 +152,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         sfMusic_destroy(self->current_music);
         self->current_music = NULL;
         game_set_current_round(self, 1);
+        game_set_current_score(self, 0);
         sfSprite_setTextureRect(self->gameplay_background_sprite,
             (sfIntRect){(512 * (self->selected_game == 2)), 8, 255, 224});
     }
@@ -211,6 +230,7 @@ static void game_draw(struct game *self)
         sfRenderWindow_drawRectangleShape(self->window, black_rectangle, NULL);
         sfRectangleShape_destroy(black_rectangle);
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
+        sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
     }
 }
 
@@ -243,6 +263,7 @@ void game_destroy(struct game *self)
 {
     sfMusic_destroy(self->current_music);
     sfText_destroy(self->current_round_text);
+    sfText_destroy(self->current_score_text);
     sfText_destroy(self->top_score_text);
     set_top_score(self->top_score);
     sfFont_destroy(self->nes_font);
