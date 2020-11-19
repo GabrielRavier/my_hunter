@@ -15,9 +15,9 @@
 // selected_game is either 0, 1, or 2 to A, B or C
 struct game {
     sfRenderWindow *window;
-    sfTexture *title_background_texture;
-    sfTexture *title_cursor_texture;
-    sfTexture *gameplay_background_texture;
+    sfTexture *title_texture;
+    sfTexture *cursor_texture;
+    sfTexture *background_texture;
     sfSprite *title_background_sprite;
     sfSprite *title_cursor_sprite;
     sfSprite *gameplay_background_sprite;

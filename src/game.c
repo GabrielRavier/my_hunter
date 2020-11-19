@@ -79,33 +79,33 @@ bool game_create(struct game *self)
     if (!self->window)
         return (false);
     sfRenderWindow_setFramerateLimit(self->window, 60);
-    self->title_background_texture = sfTexture_createFromFile(
+    self->title_texture = sfTexture_createFromFile(
         "assets/title.png", NULL);
-    if (!self->title_background_texture)
+    if (!self->title_texture)
         return (false);
-    self->title_cursor_texture = sfTexture_createFromFile(
+    self->cursor_texture = sfTexture_createFromFile(
         "assets/cursor.png", NULL);
-    if (!self->title_cursor_texture)
+    if (!self->cursor_texture)
         return (false);
-    self->gameplay_background_texture = sfTexture_createFromFile(
+    self->background_texture = sfTexture_createFromFile(
         "assets/backgrounds.png", NULL);
-    if (!self->gameplay_background_texture)
+    if (!self->background_texture)
         return (false);
     self->title_background_sprite = sfSprite_create();
     if (!self->title_background_sprite)
         return (false);
     sfSprite_setTexture(self->title_background_sprite,
-        self->title_background_texture, true);
+        self->title_texture, true);
     self->title_cursor_sprite = sfSprite_create();
     if (!self->title_cursor_sprite)
         return (false);
     sfSprite_setTexture(self->title_cursor_sprite,
-        self->title_cursor_texture, false);
+        self->cursor_texture, false);
     self->gameplay_background_sprite = sfSprite_create();
     if (!self->title_cursor_sprite)
         return (false);
     sfSprite_setTexture(self->gameplay_background_sprite,
-        self->gameplay_background_texture, true);
+        self->background_texture, true);
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
         return (false);
@@ -270,8 +270,8 @@ void game_destroy(struct game *self)
     sfSprite_destroy(self->gameplay_background_sprite);
     sfSprite_destroy(self->title_cursor_sprite);
     sfSprite_destroy(self->title_background_sprite);
-    sfTexture_destroy(self->gameplay_background_texture);
-    sfTexture_destroy(self->title_cursor_texture);
-    sfTexture_destroy(self->title_background_texture);
+    sfTexture_destroy(self->background_texture);
+    sfTexture_destroy(self->cursor_texture);
+    sfTexture_destroy(self->title_texture);
     sfRenderWindow_destroy(self->window);
 }
