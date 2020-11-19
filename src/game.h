@@ -24,6 +24,8 @@ struct game {
     sfFont *nes_font;
     int32_t top_score;
     sfText *top_score_text;
+    int current_round;
+    sfText *current_round_text;
     sfMusic *current_music;
     int selected_game;
     uintmax_t frames_since_mode_begin;

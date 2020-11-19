@@ -54,6 +54,16 @@ static void text_set_int32(sfText *text, int32_t val)
     free(val_as_string);
 }
 
+static sfText *make_nes_text(sfFont *nes_font)
+{
+    sfText *result = sfText_create();
+
+    MY_ASSERT(result);
+    sfText_setFont(result, nes_font);
+    sfText_setCharacterSize(result, 8);
+    return result;
+}
+
 // We can't disable font anti-aliasing. Oh well, I guess the game will only be
 // pretty on NES resolution, then ¯\_(ツ)_/¯
 bool game_create(struct game *self)
@@ -95,51 +105,27 @@ bool game_create(struct game *self)
     if (!self->nes_font)
         return (false);
     self->top_score = get_top_score();
-    self->top_score_text = sfText_create();
-    if (!self->top_score_text)
-        return (false);
-    sfText_setFont(self->top_score_text, self->nes_font);
-    sfText_setCharacterSize(self->top_score_text, 8);
+    self->top_score_text = make_nes_text(self->nes_font);
     text_set_int32(self->top_score_text, self->top_score);
     sfText_setColor(self->top_score_text, sfColor_fromRGB(76, 220, 72));
     sfText_setPosition(self->top_score_text, (sfVector2f){191 -
         sfText_getGlobalBounds(self->top_score_text).width, 183});
+    self->current_round_text = NULL;
     self->current_music = NULL;
     self->mode = GAME_MODE_NONE;
     return (true);
 }
 
-// The music resets every 2800 frames or so
-static void game_update(struct game *self)
+static void game_set_current_round(struct game *self, int new_round)
 {
-    if (self->mode == GAME_MODE_TITLE) {
-        if ((self->frames_since_mode_begin % 2800) == 0) {
-            sfMusic_destroy(self->current_music);
-            self->current_music = sfMusic_createFromFile("assets/title.ogg");
-            sfMusic_play(self->current_music);
-        }
-        sfSprite_setPosition(self->title_cursor_sprite, (sfVector2f){48, 129 +
-            (self->selected_game * 16)});
-    }
-}
-
-static void game_draw(struct game *self)
-{
-    if (self->mode == GAME_MODE_TITLE) {
-        sfRenderWindow_drawSprite(self->window, self->title_background_sprite,
-                                  NULL);
-        if (self->frames_since_mode_begin >= 1) {
-            sfRenderWindow_drawText(self->window, self->top_score_text, NULL);
-            sfRenderWindow_drawSprite(self->window, self->title_cursor_sprite,
-                                      NULL);
-        }
-    }
-    if (self->mode == GAME_MODE_START_ROUND) {
-        sfSprite_setTextureRect(self->gameplay_background_sprite,
-            (sfIntRect){(512 * (self->selected_game == 2)), 8, 256, 224});
-        sfRenderWindow_drawSprite(self->window,
-            self->gameplay_background_sprite, NULL);
-    }
+    self->current_round = new_round;
+    if (self->current_round > 99)
+        self->current_round = 1;
+    sfText_destroy(self->current_round_text);
+    self->current_round_text = make_nes_text(self->nes_font);
+    text_set_int32(self->current_round_text, self->current_round);
+    sfText_setColor(self->current_round_text, sfColor_fromRGB(128, 208, 16));
+    sfText_setPosition(self->current_round_text, (sfVector2f){40, 183});
 }
 
 static void game_set_mode(struct game *self, enum game_mode mode)
@@ -147,6 +133,9 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     if (self->mode == GAME_MODE_TITLE) {
         sfMusic_destroy(self->current_music);
         self->current_music = NULL;
+        game_set_current_round(self, 1);
+        sfSprite_setTextureRect(self->gameplay_background_sprite,
+            (sfIntRect){(512 * (self->selected_game == 2)), 8, 255, 224});
     }
     self->mode = mode;
     if (self->mode == GAME_MODE_TITLE) {
@@ -180,6 +169,51 @@ static void game_handle_mouse_press(struct game *self,
         game_set_mode(self, GAME_MODE_START_ROUND);
 }
 
+// The music resets every 2800 frames or so
+static void game_update(struct game *self)
+{
+    if (self->mode == GAME_MODE_TITLE) {
+        if ((self->frames_since_mode_begin % 2800) == 0) {
+            sfMusic_destroy(self->current_music);
+            self->current_music = sfMusic_createFromFile("assets/title.ogg");
+            sfMusic_play(self->current_music);
+        }
+        sfSprite_setPosition(self->title_cursor_sprite, (sfVector2f){48, 129 +
+            (self->selected_game * 16)});
+    }
+}
+
+static void game_draw(struct game *self)
+{
+    sfRectangleShape *black_rectangle;
+
+    if (self->mode == GAME_MODE_TITLE) {
+        sfRenderWindow_drawSprite(self->window, self->title_background_sprite,
+                                  NULL);
+        if (self->frames_since_mode_begin >= 1) {
+            sfRenderWindow_drawText(self->window, self->top_score_text, NULL);
+            sfRenderWindow_drawSprite(self->window, self->title_cursor_sprite,
+                                      NULL);
+        }
+    }
+    if (self->mode == GAME_MODE_START_ROUND) {
+        sfRenderWindow_drawSprite(self->window,
+            self->gameplay_background_sprite, NULL);
+        black_rectangle = sfRectangleShape_create();
+        MY_ASSERT(black_rectangle);
+        sfRectangleShape_setFillColor(black_rectangle, sfBlack);
+        sfRectangleShape_setPosition(black_rectangle, (sfVector2f){
+            sfText_getPosition(self->current_round_text).x,
+            sfText_getPosition(self->current_round_text).y + 1,});
+        sfRectangleShape_setSize(black_rectangle, (sfVector2f){
+            sfText_getGlobalBounds(self->current_round_text).width + 2,
+            sfText_getGlobalBounds(self->current_round_text).height + 1});
+        sfRenderWindow_drawRectangleShape(self->window, black_rectangle, NULL);
+        sfRectangleShape_destroy(black_rectangle);
+        sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
+    }
+}
+
 void game_main_loop(struct game *self)
 {
     sfEvent event;
@@ -208,6 +242,7 @@ void game_main_loop(struct game *self)
 void game_destroy(struct game *self)
 {
     sfMusic_destroy(self->current_music);
+    sfText_destroy(self->current_round_text);
     sfText_destroy(self->top_score_text);
     set_top_score(self->top_score);
     sfFont_destroy(self->nes_font);
