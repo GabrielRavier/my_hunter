@@ -174,12 +174,18 @@ static void game_center_text_box_text(struct game *self)
         (int)(sfText_getGlobalBounds(self->text_box_text).height / 2)});
 }
 
+static void game_change_music(struct game *self, const char *music_name)
+{
+    sfMusic_destroy(self->current_music);
+    self->current_music = sfMusic_createFromFile(music_name);
+    MY_ASSERT(self->current_music);
+    sfMusic_play(self->current_music);
+}
+
 static void game_set_mode(struct game *self, enum game_mode mode)
 {
     self->frames_since_mode_begin = 0;
     if (self->mode == GAME_MODE_TITLE) {
-        sfMusic_destroy(self->current_music);
-        self->current_music = NULL;
         self->selected_game = 0;
         game_set_current_round(self, 1);
         game_set_current_score(self, 0);
@@ -188,15 +194,11 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     }
     self->mode = mode;
     if (self->mode == GAME_MODE_TITLE) {
-        self->current_music = sfMusic_createFromFile("assets/title.ogg");
-        MY_ASSERT(self->current_music);
-        sfMusic_play(self->current_music);
+        game_change_music(self, "assets/title.ogg");
         self->should_draw_text_box = false;
     }
     if (self->mode == GAME_MODE_START_ROUND) {
-        self->current_music = sfMusic_createFromFile("assets/start_round.ogg");
-        MY_ASSERT(self->current_music);
-        sfMusic_play(self->current_music);
+        game_change_music(self, "assets/start_round.ogg");
         self->should_draw_text_box = true;
         sfText_destroy(self->text_box_text);
         self->text_box_text = make_nes_text(self->nes_font);
@@ -247,15 +249,15 @@ static void do_flying_dog_movement(struct game *self)
     static const int table_x[42] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1};
-    static const int table_y[50] = {3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
+    static const int table_y[51] = {3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, -1, 0, -1, -1, -2,
-        -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3};
+        -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3};
     int index = self->frames_since_mode_begin - 368;
     sfSprite_setPosition(self->dog_sprite, (sfVector2f){
         sfSprite_getPosition(self->dog_sprite).x +
             (index < 42 ? table_x[index] : 0),
         sfSprite_getPosition(self->dog_sprite).y -
-            (index < 50 ? table_y[index] : 0)});
+            (index < 51 ? table_y[index] : 0)});
 }
 
 // The music resets every 2800 frames or so
@@ -284,6 +286,7 @@ static void game_update(struct game *self)
                 (sfIntRect){0, 185, 37, 169 - 121});
             sfSprite_setPosition(self->dog_sprite, (sfVector2f){
                 sfSprite_getPosition(self->dog_sprite).x, 119});
+            game_change_music(self, "assets/bark.ogg");
         }
         else if ((self->frames_since_mode_begin % 7) == 0) {
             if (self->frames_since_mode_begin > 343) {
@@ -312,6 +315,7 @@ static void game_draw(struct game *self)
 {
     sfRectangleShape *black_rectangle;
 
+    sfRenderWindow_clear(self->window, sfBlack);
     if (self->mode == GAME_MODE_TITLE) {
         sfRenderWindow_drawSprite(self->window, self->title_background_sprite,
                                   NULL);
@@ -321,10 +325,11 @@ static void game_draw(struct game *self)
                                       NULL);
         }
     }
-    if (self->mode == GAME_MODE_START_ROUND) {
+    if (self->mode == GAME_MODE_START_ROUND || self->mode == GAME_MODE_ROUND) {
         sfRenderWindow_clear(self->window, sfColor_fromRGB(60, 188, 252));
-        if (self->frames_since_mode_begin > (368 + 18))
-            sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
+        if (self->mode == GAME_MODE_START_ROUND)
+            if (self->frames_since_mode_begin > (368 + 18))
+                sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
         sfRenderWindow_drawSprite(self->window,
             self->gameplay_background_sprite, NULL);
         black_rectangle = sfRectangleShape_create();
@@ -340,8 +345,9 @@ static void game_draw(struct game *self)
         sfRectangleShape_destroy(black_rectangle);
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
         sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
-        if (self->frames_since_mode_begin <= (368 + 18))
-            sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
+        if (self->mode == GAME_MODE_START_ROUND)
+            if (self->frames_since_mode_begin <= (368 + 18))
+                sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
     }
     if (self->should_draw_text_box) {
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
