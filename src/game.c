@@ -204,9 +204,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
             self->current_round);
         sfText_setColor(self->text_box_text, sfColor_fromRGB(252, 252, 252));
         game_center_text_box_text(self);
-        sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 13, 55,
-            56 - 13});
-        sfSprite_setPosition(self->dog_sprite, (sfVector2f){4, 136});
+        sfSprite_setPosition(self->dog_sprite, (sfVector2f){2, 136});
     }
 }
 
@@ -229,6 +227,37 @@ static void game_handle_mouse_press(struct game *self,
         game_set_mode(self, GAME_MODE_START_ROUND);
 }
 
+static void game_advance_dog(struct game *self)
+{
+    sfVector2f dog_position = sfSprite_getPosition(self->dog_sprite);
+    sfIntRect dog_rect = sfSprite_getTextureRect(self->dog_sprite);
+
+    dog_position.x += 2;
+    if (dog_rect.top != 13)
+        dog_rect = (sfIntRect){-57, 13, 55, 56 - 13};
+    dog_rect.left += 57;
+    if (dog_rect.left == (57 * 4))
+        dog_rect.left = 0;
+    sfSprite_setPosition(self->dog_sprite, dog_position);
+    sfSprite_setTextureRect(self->dog_sprite, dog_rect);
+}
+
+static void do_flying_dog_movement(struct game *self)
+{
+    static const int table_x[42] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1};
+    static const int table_y[50] = {3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, -1, 0, -1, -1, -2,
+        -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3};
+    int index = self->frames_since_mode_begin - 368;
+    sfSprite_setPosition(self->dog_sprite, (sfVector2f){
+        sfSprite_getPosition(self->dog_sprite).x +
+            (index < 42 ? table_x[index] : 0),
+        sfSprite_getPosition(self->dog_sprite).y -
+            (index < 50 ? table_y[index] : 0)});
+}
+
 // The music resets every 2800 frames or so
 static void game_update(struct game *self)
 {
@@ -241,9 +270,42 @@ static void game_update(struct game *self)
         sfSprite_setPosition(self->title_cursor_sprite, (sfVector2f){48, 129 +
             (self->selected_game * 16)});
     }
-    if (self->mode == GAME_MODE_START_ROUND)
+    if (self->mode == GAME_MODE_START_ROUND) {
+        if (self->frames_since_mode_begin > 468)
+            game_set_mode(self, GAME_MODE_ROUND);
+        else if (self->frames_since_mode_begin > 368) {
+            if (self->frames_since_mode_begin == (368 + 18))
+                sfSprite_setTextureRect(self->dog_sprite,
+                    (sfIntRect){40, 185, 37, 169 - 121});
+            do_flying_dog_movement(self);
+        }
+        else if (self->frames_since_mode_begin == 368) {
+            sfSprite_setTextureRect(self->dog_sprite,
+                (sfIntRect){0, 185, 37, 169 - 121});
+            sfSprite_setPosition(self->dog_sprite, (sfVector2f){
+                sfSprite_getPosition(self->dog_sprite).x, 119});
+        }
+        else if ((self->frames_since_mode_begin % 7) == 0) {
+            if (self->frames_since_mode_begin > 343) {
+                sfSprite_setTextureRect(self->dog_sprite,
+                    (sfIntRect){0, 121, 53, 169 - 121});
+                sfSprite_setPosition(self->dog_sprite, (sfVector2f){
+                    sfSprite_getPosition(self->dog_sprite).x, 131});
+            }
+            else if (!(self->frames_since_mode_begin > 120 &&
+                self->frames_since_mode_begin < 170) &&
+                !(self->frames_since_mode_begin > 285 &&
+                self->frames_since_mode_begin < 335))
+                game_advance_dog(self);
+            else {
+                sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){
+                    56 * ((self->frames_since_mode_begin % 14) == 0),
+                    69, 55, 56 - 13});
+            }
+        }
         if (self->frames_since_mode_begin > 130)
             self->should_draw_text_box = false;
+    }
 }
 
 static void game_draw(struct game *self)
@@ -260,6 +322,9 @@ static void game_draw(struct game *self)
         }
     }
     if (self->mode == GAME_MODE_START_ROUND) {
+        sfRenderWindow_clear(self->window, sfColor_fromRGB(60, 188, 252));
+        if (self->frames_since_mode_begin > (368 + 18))
+            sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
         sfRenderWindow_drawSprite(self->window,
             self->gameplay_background_sprite, NULL);
         black_rectangle = sfRectangleShape_create();
@@ -275,7 +340,8 @@ static void game_draw(struct game *self)
         sfRectangleShape_destroy(black_rectangle);
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
         sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
-        sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
+        if (self->frames_since_mode_begin <= (368 + 18))
+            sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
     }
     if (self->should_draw_text_box) {
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
@@ -297,7 +363,6 @@ void game_main_loop(struct game *self)
             if (event.type == sfEvtKeyPressed)
                 game_handle_key(self, event.key.code);
         }
-        sfRenderWindow_clear(self->window, sfBlack);
         game_update(self);
         game_draw(self);
         sfRenderWindow_display(self->window);

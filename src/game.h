@@ -41,6 +41,7 @@ struct game {
         GAME_MODE_NONE,
         GAME_MODE_TITLE,
         GAME_MODE_START_ROUND,
+        GAME_MODE_ROUND,
     } mode;
 };
 
