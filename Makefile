@@ -29,7 +29,7 @@ SOURCE_FILES := main game
 OBJECT_FILES := $(addprefix obj/, $(addsuffix .o, $(SOURCE_FILES)))
 
 $(BINARY_NAME): libmy $(OBJECT_FILES)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECT_FILES) -lmy -lcsfml-graphics -lcsfml-audio
+	$(CC) $(LDFLAGS) -o $@ $(OBJECT_FILES) -lmy -lcsfml-graphics -lcsfml-audio -lm
 
 obj/%.o: src/%.c libmy
 	mkdir --parents obj

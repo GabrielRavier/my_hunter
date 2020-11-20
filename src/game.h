@@ -15,7 +15,8 @@
 struct duck {
     sfSprite *sprite;
     bool is_active;
-    sfVector2f movement;
+    float angle;
+    float speed;
     int color;
 };
 

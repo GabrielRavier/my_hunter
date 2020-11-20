@@ -12,6 +12,7 @@
 #include "my/macros.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -34,7 +35,7 @@ static int rand_at_most(int max)
     return (x / bin_size);
 }
 
-static int random_between(int min, int max)
+static int random_int_between(int min, int max)
 {
     const int range = max - min;
 
@@ -42,7 +43,7 @@ static int random_between(int min, int max)
     return (rand_at_most(range) + min);
 }
 
-static float random_float(float min, float max)
+static float random_float_between(float min, float max)
 {
     float scale = rand() / (float)RAND_MAX;
 
@@ -254,10 +255,15 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
             if (self->ducks[i].is_active) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
-                    random_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
-                self->ducks[i].movement = (sfVector2f){random_float(-3, 3),
-                    random_float(-1.5, -0.5)};
-                self->ducks[i].color = random_between(0, 2);
+                    random_int_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
+                self->ducks[i].speed = random_float_between(0.75, 1.25);
+                // Probably has to be corrected, imo rn it's complete shite
+                self->ducks[i].angle = atan2f(120 - sfSprite_getPosition(
+                    self->ducks[i].sprite).y, random_int_between(15, 240)
+                    - sfSprite_getPosition(self->ducks[i].sprite).x);
+                self->ducks[i].angle = random_float_between(-M_PI / 3 * 2,
+                    -M_PI / 3);
+                self->ducks[i].color = random_int_between(0, 2);
             }
     }
 }
@@ -316,13 +322,29 @@ static void duck_update(struct duck *self, struct game *game)
 {
     int which_sprite = ((game->frames_since_mode_begin % (3 + 3 + 5)) >= 3) +
         ((game->frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
+    static const sfIntRect rects[6] = {
+        {8, 2, 35 - 8, 33 - 2},
+        {41, 2, 70 - 41, 33 - 2},
+        {74, 2, 98 - 74, 35 - 2},
+        {109, 8, 143 - 109, 37 - 8},
+        {147, 8, 181 - 147, 38 - 8},
+        {184, 8, 218 - 184, 40 - 8},
+    };
+    sfIntRect final_rect;
 
     (void)game;
     sfSprite_setPosition(self->sprite, (sfVector2f){
-        sfSprite_getPosition(self->sprite).x + self->movement.x,
-        sfSprite_getPosition(self->sprite).y + self->movement.y});
-    sfSprite_setTextureRect(self->sprite, (sfIntRect){
-        which_sprite * 35, self->color * 42, 35, 42});
+        sfSprite_getPosition(self->sprite).x + (self->speed * cosf(self->angle)),
+        sfSprite_getPosition(self->sprite).y + (self->speed * sinf(self->angle))});
+    if (sinf(self->angle) < cosf(self->angle))
+        final_rect = rects[which_sprite + 3];
+    else
+        final_rect = rects[which_sprite];
+    final_rect.top += (self->color * 42);
+    if (cosf(self->angle) < 0)
+        final_rect = (sfIntRect){final_rect.left + final_rect.width,
+            final_rect.top, -final_rect.width, final_rect.height};
+    sfSprite_setTextureRect(self->sprite, final_rect);
 }
 
 // The music resets every 2800 frames or so
@@ -435,6 +457,7 @@ void game_main_loop(struct game *self)
     sfEvent event;
 
     game_set_mode(self, GAME_MODE_TITLE);
+    game_set_mode(self, GAME_MODE_START_ROUND);
     game_set_mode(self, GAME_MODE_ROUND);
     while (sfRenderWindow_isOpen(self->window)) {
         while (sfRenderWindow_pollEvent(self->window, &event)) {
