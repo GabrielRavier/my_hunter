@@ -12,6 +12,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+struct duck {
+    sfSprite *sprite;
+    bool is_active;
+    sfVector2f movement;
+    int color;
+};
+
 // selected_game is either 0, 1, or 2 to A, B or C
 struct game {
     sfRenderWindow *window;
@@ -26,6 +33,7 @@ struct game {
     bool should_draw_text_box;
     sfSprite *text_box_sprite;
     sfSprite *dog_sprite;
+    struct duck ducks[2];
     sfFont *nes_font;
     int32_t top_score;
     sfText *top_score_text;

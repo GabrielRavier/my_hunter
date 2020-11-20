@@ -9,6 +9,7 @@
 #include "my/stdio.h"
 #include "my/stdlib.h"
 #include "my/assert.h"
+#include "my/macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,6 +18,37 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
+
+static int rand_at_most(int max)
+{
+    unsigned num_bins = (unsigned)max + 1;
+    unsigned num_rand = (unsigned)RAND_MAX + 1;
+    unsigned bin_size = num_rand / num_bins;
+    unsigned defect = num_rand % num_bins;
+    int x;
+
+    MY_ASSERT(max < RAND_MAX);
+    do {
+        x = rand();
+    } while (num_rand - defect <= (unsigned)x);
+    return (x / bin_size);
+}
+
+static int random_between(int min, int max)
+{
+    const int range = max - min;
+
+    MY_ASSERT(min <= max);
+    return (rand_at_most(range) + min);
+}
+
+static float random_float(float min, float max)
+{
+    float scale = rand() / (float)RAND_MAX;
+
+    MY_ASSERT(min <= max);
+    return min + scale * (max - min);
+}
 
 static void set_top_score(int top_score)
 {
@@ -127,6 +159,14 @@ bool game_create(struct game *self)
         return (false);
     sfSprite_setTexture(self->dog_sprite, self->dog_texture, false);
     sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 0, 0, 0});
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i) {
+        self->ducks[i].sprite = sfSprite_create();
+        if (!self->ducks[i].sprite)
+            return (false);
+        sfSprite_setTexture(self->ducks[i].sprite, self->ducks_texture, false);
+        sfSprite_setTextureRect(self->ducks[i].sprite, (sfIntRect){0, 0, 0, 0});
+        self->ducks[i].is_active = false;
+    }
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
         return (false);
@@ -208,6 +248,18 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         game_center_text_box_text(self);
         sfSprite_setPosition(self->dog_sprite, (sfVector2f){2, 136});
     }
+    if (self->mode == GAME_MODE_ROUND) {
+        self->ducks[0].is_active = true;
+        self->ducks[1].is_active = (self->selected_game == 1);
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+            if (self->ducks[i].is_active) {
+                sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
+                    random_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
+                self->ducks[i].movement = (sfVector2f){random_float(-3, 3),
+                    random_float(-1.5, -0.5)};
+                self->ducks[i].color = random_between(0, 2);
+            }
+    }
 }
 
 static void game_handle_key(struct game *self, sfKeyCode key_code)
@@ -260,6 +312,19 @@ static void do_flying_dog_movement(struct game *self)
             (index < 51 ? table_y[index] : 0)});
 }
 
+static void duck_update(struct duck *self, struct game *game)
+{
+    int which_sprite = ((game->frames_since_mode_begin % (3 + 3 + 5)) >= 3) +
+        ((game->frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
+
+    (void)game;
+    sfSprite_setPosition(self->sprite, (sfVector2f){
+        sfSprite_getPosition(self->sprite).x + self->movement.x,
+        sfSprite_getPosition(self->sprite).y + self->movement.y});
+    sfSprite_setTextureRect(self->sprite, (sfIntRect){
+        which_sprite * 35, self->color * 42, 35, 42});
+}
+
 // The music resets every 2800 frames or so
 static void game_update(struct game *self)
 {
@@ -309,6 +374,11 @@ static void game_update(struct game *self)
         if (self->frames_since_mode_begin > 130)
             self->should_draw_text_box = false;
     }
+    if (self->mode == GAME_MODE_ROUND) {
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+            if (self->ducks[i].is_active)
+                duck_update(&self->ducks[i], self);
+    }
 }
 
 static void game_draw(struct game *self)
@@ -327,6 +397,11 @@ static void game_draw(struct game *self)
     }
     if (self->mode == GAME_MODE_START_ROUND || self->mode == GAME_MODE_ROUND) {
         sfRenderWindow_clear(self->window, sfColor_fromRGB(60, 188, 252));
+        if (self->mode == GAME_MODE_ROUND)
+            for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+                if (self->ducks[i].is_active)
+                    sfRenderWindow_drawSprite(self->window,
+                        self->ducks[i].sprite, NULL);
         if (self->mode == GAME_MODE_START_ROUND)
             if (self->frames_since_mode_begin > (368 + 18))
                 sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
@@ -360,6 +435,7 @@ void game_main_loop(struct game *self)
     sfEvent event;
 
     game_set_mode(self, GAME_MODE_TITLE);
+    game_set_mode(self, GAME_MODE_ROUND);
     while (sfRenderWindow_isOpen(self->window)) {
         while (sfRenderWindow_pollEvent(self->window, &event)) {
             if (event.type == sfEvtClosed)
@@ -385,6 +461,8 @@ void game_destroy(struct game *self)
     sfText_destroy(self->top_score_text);
     set_top_score(self->top_score);
     sfFont_destroy(self->nes_font);
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+        sfSprite_destroy(self->ducks[i].sprite);
     sfSprite_destroy(self->dog_sprite);
     sfSprite_destroy(self->text_box_sprite);
     sfSprite_destroy(self->gameplay_background_sprite);
