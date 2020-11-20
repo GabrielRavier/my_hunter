@@ -18,6 +18,7 @@ struct duck {
     float angle;
     float speed;
     int color;
+    bool got_shot;
 };
 
 // selected_game is either 0, 1, or 2 to A, B or C
@@ -50,6 +51,7 @@ struct game {
     sfSound *flying_sound;
     int selected_game;
     uintmax_t frames_since_mode_begin;
+    int shoot_frames_left;
     enum game_mode {
         GAME_MODE_NONE,
         GAME_MODE_TITLE,

@@ -107,11 +107,12 @@ static sfText *make_nes_text(sfFont *nes_font)
 bool game_create(struct game *self)
 {
     self->window = sfRenderWindow_create(
-        (sfVideoMode){256, 224, 32},
+        (sfVideoMode){256, 224, sfVideoMode_getDesktopMode().bitsPerPixel},
         "Duck Hunt but it's done with CSFML", sfResize | sfClose, NULL);
     if (!self->window)
         return (false);
     sfRenderWindow_setFramerateLimit(self->window, 60);
+    sfRenderWindow_setVerticalSyncEnabled(self->window, true);
     self->title_texture = sfTexture_createFromFile(
         "assets/title.png", NULL);
     if (!self->title_texture)
@@ -167,6 +168,7 @@ bool game_create(struct game *self)
         sfSprite_setTexture(self->ducks[i].sprite, self->ducks_texture, false);
         sfSprite_setTextureRect(self->ducks[i].sprite, (sfIntRect){0, 0, 0, 0});
         self->ducks[i].is_active = false;
+        self->ducks[i].got_shot = false;
     }
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
@@ -193,6 +195,7 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->flying_sound, self->flying_sound_buffer);
     sfSound_setLoop(self->flying_sound, true);
+    self->shoot_frames_left = 0;
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -301,9 +304,23 @@ static void game_handle_key(struct game *self, sfKeyCode key_code)
 static void game_handle_mouse_press(struct game *self,
      const sfMouseButtonEvent *mouse_button)
 {
+    sfFloatRect tmp_duck_rect;
+
     (void)mouse_button;
     if (self->mode == GAME_MODE_TITLE)
         game_set_mode(self, GAME_MODE_START_ROUND);
+    if (self->mode == GAME_MODE_ROUND) {
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+            if (self->ducks[i].is_active) {
+                ++self->shoot_frames_left;
+                tmp_duck_rect = sfSprite_getGlobalBounds(self->ducks[i].sprite);
+                if (sfFloatRect_contains(&tmp_duck_rect, mouse_button->x,
+                    mouse_button->y)) {
+                    self->ducks[i].got_shot = true;
+                    break;
+                }
+            }
+    }
 }
 
 static void game_advance_dog(struct game *self)
@@ -351,7 +368,6 @@ static void duck_update(struct duck *self, struct game *game)
     };
     sfIntRect final_rect;
 
-    (void)game;
     sfSprite_setPosition(self->sprite, (sfVector2f){
         sfSprite_getPosition(self->sprite).x + (self->speed * cosf(self->angle)),
         sfSprite_getPosition(self->sprite).y + (self->speed * sinf(self->angle))});
@@ -451,6 +467,24 @@ static void game_update(struct game *self)
     }
 }
 
+static void game_draw_shoot_frame(struct game *self)
+{
+    sfRectangleShape *duck_white_rectangle = sfRectangleShape_create();
+    sfFloatRect duck_bounds = sfSprite_getGlobalBounds(
+        self->ducks[self->shoot_frames_left - 1].sprite);
+
+    sfRenderWindow_clear(self->window, sfBlack);
+    MY_ASSERT(duck_white_rectangle);
+    sfRectangleShape_setFillColor(duck_white_rectangle, sfWhite);
+    sfRectangleShape_setPosition(duck_white_rectangle,
+        (sfVector2f){duck_bounds.left, duck_bounds.top});
+    sfRectangleShape_setSize(duck_white_rectangle,
+        (sfVector2f){duck_bounds.width, duck_bounds.height});
+    sfRenderWindow_drawRectangleShape(self->window, duck_white_rectangle, NULL);
+    --self->shoot_frames_left;
+    sfRectangleShape_destroy(duck_white_rectangle);
+}
+
 static void game_draw(struct game *self)
 {
     sfRectangleShape *black_rectangle;
@@ -482,7 +516,7 @@ static void game_draw(struct game *self)
         sfRectangleShape_setFillColor(black_rectangle, sfBlack);
         sfRectangleShape_setPosition(black_rectangle, (sfVector2f){
             sfText_getPosition(self->current_round_text).x,
-            sfText_getPosition(self->current_round_text).y + 1,});
+            sfText_getPosition(self->current_round_text).y + 1});
         sfRectangleShape_setSize(black_rectangle, (sfVector2f){
             sfText_getGlobalBounds(self->current_round_text).width + 2,
             sfText_getGlobalBounds(self->current_round_text).height + 1});
@@ -498,6 +532,8 @@ static void game_draw(struct game *self)
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
         sfRenderWindow_drawText(self->window, self->text_box_text, NULL);
     }
+    if (self->shoot_frames_left)
+        game_draw_shoot_frame(self);
 }
 
 void game_main_loop(struct game *self)
