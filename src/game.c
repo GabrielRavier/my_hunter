@@ -181,6 +181,12 @@ bool game_create(struct game *self)
     self->text_box_text = NULL;
     self->current_round_text = NULL;
     self->current_music = NULL;
+    self->duck_sound_buffer = sfSoundBuffer_createFromFile("assets/duck.wav");
+    self->duck_sound = sfSound_create();
+    if (!self->duck_sound)
+        return (false);
+    sfSound_setBuffer(self->duck_sound, self->duck_sound_buffer);
+    sfSound_setLoop(self->duck_sound, true);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -233,6 +239,9 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         sfSprite_setTextureRect(self->gameplay_background_sprite,
             (sfIntRect){(512 * (self->selected_game == 2)), 8, 255, 224});
     }
+    if (self->mode == GAME_MODE_ROUND) {
+        sfSound_stop(self->duck_sound);
+    }
     self->mode = mode;
     if (self->mode == GAME_MODE_TITLE) {
         game_change_music(self, "assets/title.ogg");
@@ -255,6 +264,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         self->current_music = NULL;
         self->ducks[0].is_active = true;
         self->ducks[1].is_active = (self->selected_game == 1);
+        sfSound_play(self->duck_sound);
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
             if (self->ducks[i].is_active) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
@@ -295,10 +305,10 @@ static void game_advance_dog(struct game *self)
 
     dog_position.x += 2;
     if (dog_rect.top != 13)
-        dog_rect = (sfIntRect){-57, 13, 55, 56 - 13};
-    dog_rect.left += 57;
-    if (dog_rect.left == (57 * 4))
-        dog_rect.left = 0;
+        dog_rect = (sfIntRect){-1, 13, 56, 56 - 13};
+    dog_rect.left += 56;
+    if (dog_rect.left == ((56 * 4) - 1))
+        dog_rect.left = -1;
     sfSprite_setPosition(self->dog_sprite, dog_position);
     sfSprite_setTextureRect(self->dog_sprite, dog_rect);
 }
@@ -419,8 +429,8 @@ static void game_update(struct game *self)
                 game_advance_dog(self);
             else {
                 sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){
-                    56 * ((self->frames_since_mode_begin % 14) == 0),
-                    69, 55, 56 - 13});
+                    (56 * ((self->frames_since_mode_begin % 14) == 0)) - 1,
+                    69, 56, 112 - 69});
             }
         }
         if (self->frames_since_mode_begin > 130)
@@ -507,6 +517,8 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->duck_sound);
+    sfSoundBuffer_destroy(self->duck_sound_buffer);
     sfMusic_destroy(self->current_music);
     sfText_destroy(self->text_box_text);
     sfText_destroy(self->current_round_text);
