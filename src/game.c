@@ -250,6 +250,9 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         sfSprite_setPosition(self->dog_sprite, (sfVector2f){2, 136});
     }
     if (self->mode == GAME_MODE_ROUND) {
+        self->should_draw_text_box = false;
+        sfMusic_destroy(self->current_music);
+        self->current_music = NULL;
         self->ducks[0].is_active = true;
         self->ducks[1].is_active = (self->selected_game == 1);
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
@@ -259,10 +262,8 @@ static void game_set_mode(struct game *self, enum game_mode mode)
                 self->ducks[i].speed = 1.5;
                 // Probably has to be corrected, imo rn it's complete shite
                 self->ducks[i].angle = atan2f(120 - sfSprite_getPosition(
-                    self->ducks[i].sprite).y, random_int_between(15, 240)
+                    self->ducks[i].sprite).y, random_int_between(25, 230)
                     - sfSprite_getPosition(self->ducks[i].sprite).x);
-                self->ducks[i].angle = random_float_between(-M_PI / 3 * 2,
-                    -M_PI / 3);
                 self->ducks[i].color = random_int_between(0, 2);
             }
     }
@@ -323,9 +324,9 @@ static void duck_update(struct duck *self, struct game *game)
     int which_sprite = ((game->frames_since_mode_begin % (3 + 3 + 5)) >= 3) +
         ((game->frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
     static const sfIntRect rects[6] = {
-        {8, 2, 35 - 8, 33 - 2},
+        {4, 2, 35 - 4, 33 - 2},
         {41, 2, 70 - 41, 33 - 2},
-        {74, 2, 98 - 74, 35 - 2},
+        {72, 2, 98 - 72, 35 - 2},
         {109, 8, 143 - 109, 37 - 8},
         {147, 8, 181 - 147, 38 - 8},
         {184, 8, 218 - 184, 40 - 8},
@@ -336,15 +337,44 @@ static void duck_update(struct duck *self, struct game *game)
     sfSprite_setPosition(self->sprite, (sfVector2f){
         sfSprite_getPosition(self->sprite).x + (self->speed * cosf(self->angle)),
         sfSprite_getPosition(self->sprite).y + (self->speed * sinf(self->angle))});
-    if (sinf(self->angle) < cosf(self->angle))
+    if (fabsf(sinf(self->angle)) < fabsf(cosf(self->angle)))
         final_rect = rects[which_sprite + 3];
     else
         final_rect = rects[which_sprite];
     final_rect.top += (self->color * 42);
+    final_rect.left -= (self->color == 2) * 2;
     if (cosf(self->angle) < 0)
         final_rect = (sfIntRect){final_rect.left + final_rect.width,
             final_rect.top, -final_rect.width, final_rect.height};
     sfSprite_setTextureRect(self->sprite, final_rect);
+    if (sfSprite_getGlobalBounds(self->sprite).left < 0) {
+        if (cosf(self->angle) < 0) {
+            self->angle = self->angle + M_PI;
+            if (random_int_between(0, 5) != 0)
+                self->angle = -self->angle;
+        }
+        duck_update(self, game);
+    }
+    if ((sfSprite_getGlobalBounds(self->sprite).left +
+        sfSprite_getGlobalBounds(self->sprite).width) > 256) {
+        if (cosf(self->angle) > 0) {
+            self->angle = self->angle + M_PI;
+            if (random_int_between(0, 5) != 0)
+                self->angle = -self->angle;
+        }
+        duck_update(self, game);
+    }
+    if (sfSprite_getGlobalBounds(self->sprite).top < 0) {
+        if (sinf(self->angle) < 0)
+            self->angle = -self->angle;
+        duck_update(self, game);
+    }
+    if ((sfSprite_getGlobalBounds(self->sprite).top +
+        sfSprite_getGlobalBounds(self->sprite).height) > 160) {
+        if (sinf(self->angle) > 0)
+            self->angle = -self->angle;
+        duck_update(self, game);
+    }
 }
 
 // The music resets every 2800 frames or so
