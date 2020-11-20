@@ -256,7 +256,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
             if (self->ducks[i].is_active) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
                     random_int_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
-                self->ducks[i].speed = random_float_between(0.75, 1.25);
+                self->ducks[i].speed = 1.5;
                 // Probably has to be corrected, imo rn it's complete shite
                 self->ducks[i].angle = atan2f(120 - sfSprite_getPosition(
                     self->ducks[i].sprite).y, random_int_between(15, 240)
