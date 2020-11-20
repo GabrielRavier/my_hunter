@@ -187,6 +187,12 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->duck_sound, self->duck_sound_buffer);
     sfSound_setLoop(self->duck_sound, true);
+    self->flying_sound_buffer = sfSoundBuffer_createFromFile("assets/flying_sound.wav");
+    self->flying_sound = sfSound_create();
+    if (!self->flying_sound)
+        return (false);
+    sfSound_setBuffer(self->flying_sound, self->flying_sound_buffer);
+    sfSound_setLoop(self->flying_sound, true);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -241,6 +247,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     }
     if (self->mode == GAME_MODE_ROUND) {
         sfSound_stop(self->duck_sound);
+        sfSound_stop(self->flying_sound);
     }
     self->mode = mode;
     if (self->mode == GAME_MODE_TITLE) {
@@ -265,6 +272,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         self->ducks[0].is_active = true;
         self->ducks[1].is_active = (self->selected_game == 1);
         sfSound_play(self->duck_sound);
+        sfSound_play(self->flying_sound);
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
             if (self->ducks[i].is_active) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
@@ -517,6 +525,8 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->flying_sound);
+    sfSoundBuffer_destroy(self->flying_sound_buffer);
     sfSound_destroy(self->duck_sound);
     sfSoundBuffer_destroy(self->duck_sound_buffer);
     sfMusic_destroy(self->current_music);

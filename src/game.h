@@ -46,6 +46,8 @@ struct game {
     sfMusic *current_music;
     sfSoundBuffer *duck_sound_buffer;
     sfSound *duck_sound;
+    sfSoundBuffer *flying_sound_buffer;
+    sfSound *flying_sound;
     int selected_game;
     uintmax_t frames_since_mode_begin;
     enum game_mode {
