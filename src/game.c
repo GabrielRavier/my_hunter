@@ -579,6 +579,19 @@ static void game_draw(struct game *self)
     game_draw_shoot_frame(self);
 }
 
+static void game_do_score_from_color(struct game *self, int color)
+{
+    int added_score;
+
+    if (color == 0)
+        added_score = 500;
+    if (color == 1)
+        added_score = 1500;
+    if (color == 2)
+        added_score = 1000;
+    game_set_current_score(self, self->current_score + added_score);
+}
+
 static void game_handle_mouse_press(struct game *self,
      const sfMouseButtonEvent *mouse_button)
 {
@@ -595,7 +608,7 @@ static void game_handle_mouse_press(struct game *self,
                 if (sfFloatRect_contains(&tmp_duck_rect, mouse_button->x,
                     mouse_button->y)) {
                     duck_set_state(&self->ducks[i], self, DUCK_STATE_FALLING);
-                    game_set_current_score(self, self->current_score + 1000);
+                    game_do_score_from_color(self, self->ducks[i].color);
                     break;
                 }
             }
