@@ -718,6 +718,8 @@ static void game_handle_mouse_press(struct game *self,
      const sfMouseButtonEvent *mouse_button)
 {
     sfFloatRect tmp_duck_rect;
+    sfVector2f real_mouse_coordinates = sfRenderWindow_mapPixelToCoords(
+        self->window, (sfVector2i){mouse_button->x, mouse_button->y}, NULL);
 
     (void)mouse_button;
     if (self->mode == GAME_MODE_TITLE)
@@ -731,8 +733,8 @@ static void game_handle_mouse_press(struct game *self,
                     self->ducks[i].draw_shoot_rectangle = true;
                     tmp_duck_rect = sfSprite_getGlobalBounds(
                         self->ducks[i].sprite);
-                    if (sfFloatRect_contains(&tmp_duck_rect, mouse_button->x,
-                        mouse_button->y)) {
+                    if (sfFloatRect_contains(&tmp_duck_rect,
+                        real_mouse_coordinates.x, real_mouse_coordinates.y)) {
                         duck_set_state(&self->ducks[i], self,
                             DUCK_STATE_FALLING);
                         game_do_score_from_color(self, &self->ducks[i]);
