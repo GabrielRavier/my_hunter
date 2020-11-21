@@ -14,11 +14,26 @@
 
 struct duck {
     sfSprite *sprite;
-    bool is_active;
+    enum duck_state {
+        DUCK_STATE_INACTIVE,
+        DUCK_STATE_FLYING,
+        DUCK_STATE_FALLING,
+        DUCK_STATE_DEAD,
+    } state;
+    int frames_since_state_change;
     float angle;
     float speed;
     int color;
-    bool got_shot;
+    bool draw_shoot_rectangle;
+};
+
+struct round_duck {
+    enum {
+        ROUND_DUCK_LIVES,
+        ROUND_DUCK_DEAD,
+        ROUND_DUCK_FLYING
+    } state;
+    sfSprite *sprite;
 };
 
 // selected_game is either 0, 1, or 2 to A, B or C
@@ -35,6 +50,8 @@ struct game {
     bool should_draw_text_box;
     sfSprite *text_box_sprite;
     sfSprite *dog_sprite;
+    int current_round_ducks_index;
+    struct round_duck round_ducks[10];
     struct duck ducks[2];
     sfFont *nes_font;
     int32_t top_score;
@@ -51,12 +68,11 @@ struct game {
     sfSound *flying_sound;
     int selected_game;
     uintmax_t frames_since_mode_begin;
-    int shoot_frames_left;
     enum game_mode {
         GAME_MODE_NONE,
         GAME_MODE_TITLE,
         GAME_MODE_START_ROUND,
-        GAME_MODE_ROUND,
+        GAME_MODE_ROUND
     } mode;
 };
 

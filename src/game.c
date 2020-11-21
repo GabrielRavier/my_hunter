@@ -82,14 +82,14 @@ static int32_t get_top_score(void)
 
 static void text_set_printf(sfText *text, const char *format, ...)
 {
-    char *val_as_string;
+    char *formatted_string;
     va_list arguments;
 
     va_start(arguments, format);
-    MY_ASSERT(my_vasprintf(&val_as_string, format, arguments) >= 0);
+    MY_ASSERT(my_vasprintf(&formatted_string, format, arguments) >= 0);
     va_end(arguments);
-    sfText_setString(text, val_as_string);
-    free(val_as_string);
+    sfText_setString(text, formatted_string);
+    free(formatted_string);
 }
 
 static sfText *make_nes_text(sfFont *nes_font)
@@ -161,14 +161,22 @@ bool game_create(struct game *self)
         return (false);
     sfSprite_setTexture(self->dog_sprite, self->dog_texture, false);
     sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 0, 0, 0});
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i) {
+        self->round_ducks[i].sprite = sfSprite_create();
+        if (!self->round_ducks[i].sprite)
+            return (false);
+        sfSprite_setTexture(self->round_ducks[i].sprite,
+            self->background_texture, false);
+    }
     for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i) {
         self->ducks[i].sprite = sfSprite_create();
         if (!self->ducks[i].sprite)
             return (false);
         sfSprite_setTexture(self->ducks[i].sprite, self->ducks_texture, false);
         sfSprite_setTextureRect(self->ducks[i].sprite, (sfIntRect){0, 0, 0, 0});
-        self->ducks[i].is_active = false;
-        self->ducks[i].got_shot = false;
+        self->ducks[i].state = DUCK_STATE_INACTIVE;
+        self->ducks[i].draw_shoot_rectangle = false;
+        self->ducks[i].frames_since_state_change = 0;
     }
     self->nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (!self->nes_font)
@@ -195,7 +203,6 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->flying_sound, self->flying_sound_buffer);
     sfSound_setLoop(self->flying_sound, true);
-    self->shoot_frames_left = 0;
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -217,6 +224,8 @@ static void game_set_current_score(struct game *self, int new_score)
     self->current_score = new_score;
     if (self->current_score > 999999)
         self->current_score = 0;
+    if (self->current_score > self->top_score)
+        set_top_score(self->current_score);
     sfText_destroy(self->current_score_text);
     self->current_score_text = make_nes_text(self->nes_font);
     text_set_printf(self->current_score_text, "%06" PRId32, self->current_score);
@@ -267,17 +276,31 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         sfText_setColor(self->text_box_text, sfColor_fromRGB(252, 252, 252));
         game_center_text_box_text(self);
         sfSprite_setPosition(self->dog_sprite, (sfVector2f){2, 136});
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)  {
+            sfSprite_setTextureRect(self->round_ducks[i].sprite,
+                (sfIntRect){0, 0, 0, 0});
+            self->round_ducks[i].state = ROUND_DUCK_LIVES;
+        }
+        self->current_round_ducks_index = 0;
     }
     if (self->mode == GAME_MODE_ROUND) {
         self->should_draw_text_box = false;
         sfMusic_destroy(self->current_music);
         self->current_music = NULL;
-        self->ducks[0].is_active = true;
-        self->ducks[1].is_active = (self->selected_game == 1);
+        self->ducks[0].state = DUCK_STATE_FLYING;
+        self->round_ducks[self->current_round_ducks_index].state =
+            ROUND_DUCK_FLYING;
+        if (self->selected_game == 1) {
+            self->round_ducks[self->current_round_ducks_index + 1].state =
+                ROUND_DUCK_FLYING;
+            self->ducks[1].state = DUCK_STATE_FLYING;
+        }
+        else
+            self->ducks[1].state = DUCK_STATE_INACTIVE;
         sfSound_play(self->duck_sound);
         sfSound_play(self->flying_sound);
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
-            if (self->ducks[i].is_active) {
+            if (self->ducks[i].state != DUCK_STATE_INACTIVE) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
                     random_int_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
                 self->ducks[i].speed = 1.5;
@@ -298,28 +321,6 @@ static void game_handle_key(struct game *self, sfKeyCode key_code)
                 self->selected_game = 0;
         if (key_code == sfKeyC)
             game_set_mode(self, GAME_MODE_START_ROUND);
-    }
-}
-
-static void game_handle_mouse_press(struct game *self,
-     const sfMouseButtonEvent *mouse_button)
-{
-    sfFloatRect tmp_duck_rect;
-
-    (void)mouse_button;
-    if (self->mode == GAME_MODE_TITLE)
-        game_set_mode(self, GAME_MODE_START_ROUND);
-    if (self->mode == GAME_MODE_ROUND) {
-        for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
-            if (self->ducks[i].is_active) {
-                ++self->shoot_frames_left;
-                tmp_duck_rect = sfSprite_getGlobalBounds(self->ducks[i].sprite);
-                if (sfFloatRect_contains(&tmp_duck_rect, mouse_button->x,
-                    mouse_button->y)) {
-                    self->ducks[i].got_shot = true;
-                    break;
-                }
-            }
     }
 }
 
@@ -354,6 +355,16 @@ static void do_flying_dog_movement(struct game *self)
             (index < 51 ? table_y[index] : 0)});
 }
 
+static void duck_set_state(struct duck *self, struct game *game,
+    enum duck_state state)
+{
+    self->state = state;
+    self->frames_since_state_change = 0;
+    if (self->state == DUCK_STATE_FALLING)
+        game->round_ducks[(self - game->ducks) +
+            game->current_round_ducks_index].state = ROUND_DUCK_DEAD;
+}
+
 static void duck_update(struct duck *self, struct game *game)
 {
     int which_sprite = ((game->frames_since_mode_begin % (3 + 3 + 5)) >= 3) +
@@ -368,6 +379,7 @@ static void duck_update(struct duck *self, struct game *game)
     };
     sfIntRect final_rect;
 
+    ++self->frames_since_state_change;
     sfSprite_setPosition(self->sprite, (sfVector2f){
         sfSprite_getPosition(self->sprite).x + (self->speed * cosf(self->angle)),
         sfSprite_getPosition(self->sprite).y + (self->speed * sinf(self->angle))});
@@ -409,6 +421,27 @@ static void duck_update(struct duck *self, struct game *game)
             self->angle = -self->angle;
         duck_update(self, game);
     }
+}
+
+static void round_duck_update(struct round_duck *self, struct game *game,
+    size_t i)
+{
+    sfIntRect rect_living = {96, 209, 7, 7};
+    sfIntRect rect_dead = {96, 241, 7, 7};
+    sfIntRect black_rect = {96 - 7, 209, 7, 7};
+    sfIntRect final_rect;
+
+    sfSprite_setPosition(self->sprite,
+        (sfVector2f){96 + (i * 8), 201});
+    if (self->state == ROUND_DUCK_DEAD)
+        final_rect = rect_dead;
+    else if (self->state == ROUND_DUCK_LIVES ||
+        ((self->state == ROUND_DUCK_FLYING) &&
+        ((game->frames_since_mode_begin % 32) < 16)))
+        final_rect = rect_living;
+    else
+        final_rect = black_rect;
+    sfSprite_setTextureRect(self->sprite, final_rect);
 }
 
 // The music resets every 2800 frames or so
@@ -460,28 +493,36 @@ static void game_update(struct game *self)
         if (self->frames_since_mode_begin > 130)
             self->should_draw_text_box = false;
     }
-    if (self->mode == GAME_MODE_ROUND) {
+    if (self->mode == GAME_MODE_ROUND)
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
-            if (self->ducks[i].is_active)
+            if (self->ducks[i].state != DUCK_STATE_INACTIVE)
                 duck_update(&self->ducks[i], self);
-    }
+    if (self->mode == GAME_MODE_ROUND || self->mode == GAME_MODE_START_ROUND)
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)
+            round_duck_update(&self->round_ducks[i], self, i);
 }
 
 static void game_draw_shoot_frame(struct game *self)
 {
     sfRectangleShape *duck_white_rectangle = sfRectangleShape_create();
-    sfFloatRect duck_bounds = sfSprite_getGlobalBounds(
-        self->ducks[self->shoot_frames_left - 1].sprite);
+    sfFloatRect duck_bounds;
 
-    sfRenderWindow_clear(self->window, sfBlack);
     MY_ASSERT(duck_white_rectangle);
-    sfRectangleShape_setFillColor(duck_white_rectangle, sfWhite);
-    sfRectangleShape_setPosition(duck_white_rectangle,
-        (sfVector2f){duck_bounds.left, duck_bounds.top});
-    sfRectangleShape_setSize(duck_white_rectangle,
-        (sfVector2f){duck_bounds.width, duck_bounds.height});
-    sfRenderWindow_drawRectangleShape(self->window, duck_white_rectangle, NULL);
-    --self->shoot_frames_left;
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i) {
+        if (self->ducks[i].draw_shoot_rectangle) {
+            self->ducks[i].draw_shoot_rectangle = false;
+            duck_bounds = sfSprite_getGlobalBounds(
+                self->ducks[i].sprite);
+            sfRenderWindow_clear(self->window, sfBlack);
+            sfRectangleShape_setFillColor(duck_white_rectangle, sfWhite);
+            sfRectangleShape_setPosition(duck_white_rectangle,
+                (sfVector2f){duck_bounds.left, duck_bounds.top});
+            sfRectangleShape_setSize(duck_white_rectangle,
+                (sfVector2f){duck_bounds.width, duck_bounds.height});
+            sfRenderWindow_drawRectangleShape(self->window,
+                duck_white_rectangle, NULL);
+        }
+    }
     sfRectangleShape_destroy(duck_white_rectangle);
 }
 
@@ -503,7 +544,7 @@ static void game_draw(struct game *self)
         sfRenderWindow_clear(self->window, sfColor_fromRGB(60, 188, 252));
         if (self->mode == GAME_MODE_ROUND)
             for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
-                if (self->ducks[i].is_active)
+                if (self->ducks[i].state != DUCK_STATE_INACTIVE)
                     sfRenderWindow_drawSprite(self->window,
                         self->ducks[i].sprite, NULL);
         if (self->mode == GAME_MODE_START_ROUND)
@@ -527,13 +568,38 @@ static void game_draw(struct game *self)
         if (self->mode == GAME_MODE_START_ROUND)
             if (self->frames_since_mode_begin <= (368 + 18))
                 sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)
+            sfRenderWindow_drawSprite(self->window,
+                self->round_ducks[i].sprite, NULL);
     }
     if (self->should_draw_text_box) {
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
         sfRenderWindow_drawText(self->window, self->text_box_text, NULL);
     }
-    if (self->shoot_frames_left)
-        game_draw_shoot_frame(self);
+    game_draw_shoot_frame(self);
+}
+
+static void game_handle_mouse_press(struct game *self,
+     const sfMouseButtonEvent *mouse_button)
+{
+    sfFloatRect tmp_duck_rect;
+
+    (void)mouse_button;
+    if (self->mode == GAME_MODE_TITLE)
+        game_set_mode(self, GAME_MODE_START_ROUND);
+    if (self->mode == GAME_MODE_ROUND) {
+        for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+            if (self->ducks[i].state == DUCK_STATE_FLYING) {
+                self->ducks[i].draw_shoot_rectangle = true;
+                tmp_duck_rect = sfSprite_getGlobalBounds(self->ducks[i].sprite);
+                if (sfFloatRect_contains(&tmp_duck_rect, mouse_button->x,
+                    mouse_button->y)) {
+                    duck_set_state(&self->ducks[i], self, DUCK_STATE_FALLING);
+                    game_set_current_score(self, self->current_score + 1000);
+                    break;
+                }
+            }
+    }
 }
 
 void game_main_loop(struct game *self)
@@ -574,6 +640,8 @@ void game_destroy(struct game *self)
     sfFont_destroy(self->nes_font);
     for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
         sfSprite_destroy(self->ducks[i].sprite);
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)
+        sfSprite_destroy(self->round_ducks[i].sprite);
     sfSprite_destroy(self->dog_sprite);
     sfSprite_destroy(self->text_box_sprite);
     sfSprite_destroy(self->gameplay_background_sprite);
