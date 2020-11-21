@@ -25,6 +25,7 @@ struct duck {
     float speed;
     int color;
     bool draw_shoot_rectangle;
+    sfText *score_text;
 };
 
 struct round_duck {
@@ -52,8 +53,8 @@ struct game {
     sfSprite *dog_sprite;
     int current_round_ducks_index;
     struct round_duck round_ducks[10];
-    struct duck ducks[2];
     sfFont *nes_font;
+    struct duck ducks[2];
     int32_t top_score;
     sfText *top_score_text;
     int32_t current_score;
@@ -66,13 +67,20 @@ struct game {
     sfSound *duck_sound;
     sfSoundBuffer *flying_sound_buffer;
     sfSound *flying_sound;
+    sfSoundBuffer *gun_shoot_sound_buffer;
+    sfSound *gun_shoot_sound;
+    sfSoundBuffer *duck_falling_sound_buffer;
+    sfSound *duck_falling_sound;
+    sfSoundBuffer *duck_thud_sound_buffer;
+    sfSound *duck_thud_sound;
+    int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;
     enum game_mode {
         GAME_MODE_NONE,
         GAME_MODE_TITLE,
         GAME_MODE_START_ROUND,
-        GAME_MODE_ROUND
+        GAME_MODE_SESSION
     } mode;
 };
 
