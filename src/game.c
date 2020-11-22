@@ -244,6 +244,13 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->gottem_sound,
         self->gottem_sound_buffer);
+    self->dog_mocking_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/dog_mocking.wav");
+    self->dog_mocking_sound = sfSound_create();
+    if (!self->dog_mocking_sound)
+        return (false);
+    sfSound_setBuffer(self->dog_mocking_sound,
+        self->dog_mocking_sound_buffer);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -635,8 +642,14 @@ static void game_update_end_session(struct game *self)
             (sfIntRect){52, 264, 108 - 52, 304 - 264});
         if (ducks_dead > 0)
             sfSound_play(self->gottem_sound);
+        else
+            sfSound_play(self->dog_mocking_sound);
     }
     if (self->frames_since_mode_begin > 50) {
+        if (ducks_dead == 0)
+            sfSprite_setTextureRect(self->dog_sprite,
+                (sfIntRect){2 + (((self->frames_since_mode_begin % 10) < 5) *
+                    (34 - 2)), 320, 31 - 2, 360 - 320});
         if (self->frames_since_mode_begin < 77)
             dog_position.y -= 2;
         if (self->frames_since_mode_begin > 97 &&
@@ -911,6 +924,8 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->dog_mocking_sound);
+    sfSoundBuffer_destroy(self->dog_mocking_sound_buffer);
     sfSound_destroy(self->gottem_sound);
     sfSoundBuffer_destroy(self->gottem_sound_buffer);
     sfSound_destroy(self->duck_thud_sound);

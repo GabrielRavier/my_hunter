@@ -78,6 +78,8 @@ struct game {
     sfSound *duck_thud_sound;
     sfSoundBuffer *gottem_sound_buffer;
     sfSound *gottem_sound;
+    sfSoundBuffer *dog_mocking_sound_buffer;
+    sfSound *dog_mocking_sound;
     int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;
