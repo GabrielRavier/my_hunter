@@ -33,6 +33,7 @@ struct round_duck {
         ROUND_DUCK_STATE_LIVES,
         ROUND_DUCK_STATE_DEAD,
         ROUND_DUCK_STATE_FLYING,
+        ROUND_DUCK_STATE_END_ROUND_FLASHING,
     } state;
     sfSprite *sprite;
 };
@@ -57,6 +58,7 @@ struct game {
     sfFont *nes_font;
     struct duck ducks[2];
     float last_duck_fall_x_position;
+    intmax_t frame_finished_sorting;
     bool clear_screen_for_shoot;
     int32_t top_score;
     sfText *top_score_text;
@@ -82,6 +84,12 @@ struct game {
     sfSound *dog_mocking_sound;
     sfSoundBuffer *round_ducks_move_sound_buffer;
     sfSound *round_ducks_move_sound;
+    sfSoundBuffer *end_round_success_sound_buffer;
+    sfSound *end_round_success_sound;
+    sfSoundBuffer *game_over_sound_buffer;
+    sfSound *game_over_sound;
+    sfSoundBuffer *game_over_dog_sound_buffer;
+    sfSound *game_over_dog_sound;
     int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;

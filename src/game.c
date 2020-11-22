@@ -6,6 +6,8 @@
 */
 
 #include "game.h"
+#include "random.h"
+#include "top_score.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
 #include "my/assert.h"
@@ -19,66 +21,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static int rand_at_most(int max)
-{
-    unsigned num_bins = (unsigned)max + 1;
-    unsigned num_rand = (unsigned)RAND_MAX + 1;
-    unsigned bin_size = num_rand / num_bins;
-    unsigned defect = num_rand % num_bins;
-    int x;
-
-    MY_ASSERT(max < RAND_MAX);
-    do {
-        x = rand();
-    } while (num_rand - defect <= (unsigned)x);
-    return (x / bin_size);
-}
-
-static int random_int_between(int min, int max)
-{
-    const int range = max - min;
-
-    MY_ASSERT(min <= max);
-    return (rand_at_most(range) + min);
-}
-
-static float random_float_between(float min, float max)
-{
-    float scale = rand() / (float)RAND_MAX;
-
-    MY_ASSERT(min <= max);
-    return min + scale * (max - min);
-}
-
-static void set_top_score(int top_score)
-{
-    static const int all_rw = 0666;
-    int fd = open("top_score.txt", O_WRONLY | O_CREAT | O_TRUNC, all_rw);
-
-    if (fd < 0) {
-        my_dputs("Failed to open top_score.txt\n", STDERR_FILENO);
-        return;
-    }
-    my_dprintf(fd, "%" PRId32, top_score);
-    close(fd);
-}
-
-static int32_t get_top_score(void)
-{
-    FILE *score_file = fopen("top_score.txt", "r");
-    char buffer[7];
-    int bytes_read;
-    int result;
-
-    if (!score_file)
-        return 12000;
-    bytes_read = fread(buffer, 1, 6, score_file);
-    buffer[bytes_read] = '\0';
-    result = my_strtol_base_str(buffer, NULL, "0123456789");
-    fclose(score_file);
-    return result;
-}
 
 static void text_set_printf(sfText *text, const char *format, ...)
 {
@@ -258,6 +200,27 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->round_ducks_move_sound,
         self->round_ducks_move_sound_buffer);
+    self->end_round_success_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/end_round_success.wav");
+    self->end_round_success_sound = sfSound_create();
+    if (!self->end_round_success_sound)
+        return (false);
+    sfSound_setBuffer(self->end_round_success_sound,
+        self->end_round_success_sound_buffer);
+    self->game_over_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/game_over.wav");
+    self->game_over_sound = sfSound_create();
+    if (!self->game_over_sound)
+        return (false);
+    sfSound_setBuffer(self->game_over_sound,
+        self->game_over_sound_buffer);
+    self->game_over_dog_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/game_over_dog.wav");
+    self->game_over_dog_sound = sfSound_create();
+    if (!self->game_over_dog_sound)
+        return (false);
+    sfSound_setBuffer(self->game_over_dog_sound,
+        self->game_over_dog_sound_buffer);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -317,12 +280,42 @@ static void game_update_do_sounds_stop_if_no_ducks_flying(struct game *self)
     }
 }
 
+static float game_get_duck_speed(struct game *self, struct duck *duck)
+{
+    float result = 1.5f;
+
+    if (self->current_round == 2)
+        result *= 1.07f;
+    if (self->current_round == 3)
+        result *= 1.2f;
+    if (self->current_round == 4)
+        result *= 1.5f;
+    if (self->current_round == 5)
+        result *= 1.65f;
+    if (self->current_round == 6)
+        result *= 2.f;
+    if (self->current_round == 7)
+        result *= 2.3f;
+    if (self->current_round == 8)
+        result *= 2.5f;
+    if (self->current_round == 9)
+        result *= 3.f;
+    if (self->current_round == 10)
+        result *= 3.5f;
+    if (self->current_round >= 11)
+        result *= 6.f;
+    if (duck->color == 2)
+        result *= 1.25f;
+    if (duck->color == 1)
+        result *= 1.5f;
+    return result;
+}
+
 static void game_set_mode(struct game *self, enum game_mode mode)
 {
     self->frames_since_mode_begin = 0;
     if (self->mode == GAME_MODE_TITLE) {
-        self->selected_game = 0;
-        game_set_current_round(self, 1);
+        game_set_current_round(self, 0);
         game_set_current_score(self, 0);
         sfSprite_setTextureRect(self->gameplay_background_sprite,
             (sfIntRect){(512 * (self->selected_game == 2)), 8, 255, 224});
@@ -343,9 +336,11 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     if (self->mode == GAME_MODE_TITLE) {
         game_change_music(self, "assets/title.ogg");
         self->should_draw_text_box = false;
+        self->selected_game = 0;
     }
     if (self->mode == GAME_MODE_START_ROUND) {
         game_change_music(self, "assets/start_round.ogg");
+        game_set_current_round(self, self->current_round + 1);
         self->should_draw_text_box = true;
         sfText_destroy(self->text_box_text);
         self->text_box_text = make_nes_text(self->nes_font);
@@ -354,6 +349,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         sfText_setColor(self->text_box_text, sfColor_fromRGB(252, 252, 252));
         game_center_text_box_text(self);
         sfSprite_setPosition(self->dog_sprite, (sfVector2f){2, 136});
+        sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 0, 0, 0});
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)  {
             sfSprite_setTextureRect(self->round_ducks[i].sprite,
                 (sfIntRect){0, 0, 0, 0});
@@ -382,13 +378,17 @@ static void game_set_mode(struct game *self, enum game_mode mode)
             if (self->ducks[i].state != DUCK_STATE_INACTIVE) {
                 sfSprite_setPosition(self->ducks[i].sprite, (sfVector2f){
                     random_int_between(0, 256 - (33 - 6)), 184 - (119 - 89)});
-                self->ducks[i].speed = 1.5;
+                self->ducks[i].color = random_int_between(0, 2);
+                self->ducks[i].speed = game_get_duck_speed(self, &self->ducks[i]);
                 self->ducks[i].angle = atan2f(120 - sfSprite_getPosition(
                     self->ducks[i].sprite).y, random_int_between(25, 230)
                     - sfSprite_getPosition(self->ducks[i].sprite).x);
-                self->ducks[i].color = random_int_between(0, 2);
             }
         self->shots_left = 3;
+    }
+    if (self->mode == GAME_MODE_END_ROUND) {
+        self->frame_finished_sorting = -1;
+        sfSprite_setPosition(self->dog_sprite, (sfVector2f){1000, 1000});
     }
 }
 
@@ -508,7 +508,7 @@ static void duck_update(struct duck *self, struct game *game)
 
     ++self->frames_since_state_change;
     if (self->state == DUCK_STATE_FLYING) {
-        if (game->shots_left == 0 && game->mode == GAME_MODE_SESSION_FLY_AWAY)
+        if (game->shots_left == 0)
             self->angle = -M_PI / 2;
         sfSprite_setPosition(self->sprite, (sfVector2f){
             current_position.x + (self->speed * cosf(self->angle)),
@@ -522,7 +522,7 @@ static void duck_update(struct duck *self, struct game *game)
                 final_rect.top, -final_rect.width, final_rect.height};
         sfSprite_setTextureRect(self->sprite, final_rect);
         self_bounds = sfSprite_getGlobalBounds(self->sprite);
-        if (game->mode == GAME_MODE_SESSION_FLY_AWAY) {
+        if (game->shots_left == 0) {
             if (((self_bounds.left + self_bounds.width) < 0) ||
                (self_bounds.left > 256) ||
                ((self_bounds.top + self_bounds.height) < 0))
@@ -531,33 +531,35 @@ static void duck_update(struct duck *self, struct game *game)
             if (self_bounds.left < 0) {
                 if (cosf(self->angle) < 0) {
                     self->angle = self->angle + M_PI +
-                        random_float_between(-0.5, 0.5);
+                        random_float_between(-0.25f, 0.25f);
                     if (random_int_between(0, 5) != 0)
                         self->angle = -self->angle;
+                    duck_update(self, game);
                 }
-                duck_update(self, game);
             }
             if ((self_bounds.left + self_bounds.width) > 256) {
                 if (cosf(self->angle) > 0) {
                     self->angle = self->angle + M_PI +
-                        random_float_between(-0.5, 0.5);
+                        random_float_between(-0.25f, 0.25f);
                     if (random_int_between(0, 5) != 0)
                         self->angle = -self->angle;
+                    duck_update(self, game);
                 }
-                duck_update(self, game);
             }
             if (self_bounds.top < 0) {
-                if (sinf(self->angle) < 0)
+                if (sinf(self->angle) < 0) {
                     self->angle = -self->angle +
-                        random_float_between(-0.5, 0.5);
-                duck_update(self, game);
+                        random_float_between(-0.25f, 0.25f);
+                    duck_update(self, game);
+                }
             }
         }
         if ((self_bounds.top + self_bounds.height) > 160) {
-            if (sinf(self->angle) > 0)
+            if (sinf(self->angle) > 0) {
                 self->angle = -self->angle +
-                        random_float_between(-0.5, 0.5);
-            duck_update(self, game);
+                        random_float_between(-0.25f, 0.25f);
+                duck_update(self, game);
+            }
         }
     }
     if (self->state == DUCK_STATE_FALLING) {
@@ -610,6 +612,12 @@ static void round_duck_update(struct round_duck *self, struct game *game,
         final_rect = rect_living;
     else
         final_rect = black_rect;
+    if (self->state == ROUND_DUCK_STATE_END_ROUND_FLASHING) {
+        if ((game->frames_since_mode_begin % 32) < 16)
+            final_rect = rect_living;
+        else
+            final_rect = rect_dead;
+    }
     sfSprite_setTextureRect(self->sprite, final_rect);
 }
 
@@ -673,23 +681,74 @@ static void game_update_end_round(struct game *self)
 {
     bool is_finished_sorting = true;
     size_t killed_ducks;
+    size_t rounds_threshold_required[19] = {6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7,
+        8, 8, 9, 9, 9, 9, 9};
 
     for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
         if (self->round_ducks[i].state == ROUND_DUCK_STATE_LIVES &&
-            self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD)
+            self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD) {
             is_finished_sorting = false;
-    if (!is_finished_sorting && ((self->frames_since_mode_begin % 17) == 0)) {
-        sfSound_play(self->round_ducks_move_sound);
-        for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
-            if (self->round_ducks[i].state == ROUND_DUCK_STATE_LIVES &&
-                self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD) {
-                self->round_ducks[i].state = ROUND_DUCK_STATE_DEAD;
-                self->round_ducks[i + 1].state = ROUND_DUCK_STATE_LIVES;
-            }
-    }
-    else {
+            break;
+        }
+    if (!is_finished_sorting) {
+        if (((self->frames_since_mode_begin % 17) == 0)) {
+            sfSound_play(self->round_ducks_move_sound);
+            for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
+                if (self->round_ducks[i].state == ROUND_DUCK_STATE_LIVES &&
+                    self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD) {
+                    self->round_ducks[i].state = ROUND_DUCK_STATE_DEAD;
+                    self->round_ducks[i + 1].state = ROUND_DUCK_STATE_LIVES;
+                }
+        }
+    } else {
+        if (self->frame_finished_sorting == -1)
+            self->frame_finished_sorting = self->frames_since_mode_begin;
         for (killed_ducks = 0; killed_ducks < MY_ARRAY_SIZE(self->round_ducks);
-             ++killed_ducks);
+            ++killed_ducks)
+            if ((self->round_ducks[killed_ducks].state !=
+                ROUND_DUCK_STATE_DEAD) &&
+                (self->round_ducks[killed_ducks].state !=
+                ROUND_DUCK_STATE_END_ROUND_FLASHING))
+                break;
+        if (killed_ducks < (self->current_round < 20 ?
+            rounds_threshold_required[self->current_round - 1] : 10)) {
+            if (((uintmax_t)self->frame_finished_sorting + 16) ==
+                self->frames_since_mode_begin) {
+                sfSound_play(self->game_over_sound);
+                self->should_draw_text_box = true;
+                text_set_printf(self->text_box_text, "GAME\n\n OVER");
+            }
+            if (((uintmax_t)self->frame_finished_sorting + 140) ==
+                self->frames_since_mode_begin) {
+                sfSound_play(self->game_over_dog_sound);
+                sfSprite_setPosition(self->dog_sprite, (sfVector2f){112, 161});
+            }
+            if ((((uintmax_t)self->frame_finished_sorting + 140) <
+                self->frames_since_mode_begin) &&
+                (((uintmax_t)self->frame_finished_sorting + 167) >
+                self->frames_since_mode_begin)) {
+                sfSprite_setPosition(self->dog_sprite, (sfVector2f){
+                    sfSprite_getPosition(self->dog_sprite).x,
+                    sfSprite_getPosition(self->dog_sprite).y - 2});
+            }
+            if (((uintmax_t)self->frame_finished_sorting + 370) ==
+                self->frames_since_mode_begin)
+                game_set_mode(self, GAME_MODE_TITLE);
+            sfSprite_setTextureRect(self->dog_sprite,
+                (sfIntRect){2 + (((self->frames_since_mode_begin % 17) < 12) *
+                    (34 - 2)), 320, 31 - 2, 360 - 320});
+        } else {
+            if (((uintmax_t)self->frame_finished_sorting + 16) ==
+                self->frames_since_mode_begin) {
+                sfSound_play(self->end_round_success_sound);
+                for (size_t i = 0; i < killed_ducks; ++i)
+                    self->round_ducks[i].state =
+                        ROUND_DUCK_STATE_END_ROUND_FLASHING;
+            }
+            if (((uintmax_t)self->frame_finished_sorting + 280) ==
+                self->frames_since_mode_begin)
+                game_set_mode(self, GAME_MODE_START_ROUND);
+        }
     }
 }
 
@@ -826,7 +885,8 @@ static void game_draw(struct game *self)
                     sfRenderWindow_drawSprite(self->window,
                         self->ducks[i].sprite, NULL);
         if (self->mode == GAME_MODE_START_ROUND ||
-            self->mode == GAME_MODE_END_SESSION)
+            self->mode == GAME_MODE_END_SESSION ||
+            self->mode == GAME_MODE_END_ROUND)
             if (!(self->mode == GAME_MODE_START_ROUND) ||
                 self->frames_since_mode_begin > (368 + 18))
                 sfRenderWindow_drawSprite(self->window, self->dog_sprite, NULL);
@@ -846,15 +906,18 @@ static void game_draw(struct game *self)
         sfRectangleShape_setSize(black_rectangle,
             (sfVector2f){-((3 - self->shots_left) * 8), 8});
         sfRenderWindow_drawRectangleShape(self->window, black_rectangle, NULL);
-        if (self->shots_left == 0) {
-            if ((self->frames_since_mode_begin % 16) < 8) {
-                sfRectangleShape_setPosition(black_rectangle,
-                    (sfVector2f){24, 208});
-                sfRectangleShape_setSize(black_rectangle, (sfVector2f){24, 8});
-                sfRenderWindow_drawRectangleShape(self->window,
-                    black_rectangle, NULL);
+        if (self->mode == GAME_MODE_SESSION ||
+            self->mode == GAME_MODE_SESSION_FLY_AWAY)
+            if (self->shots_left == 0) {
+                if ((self->frames_since_mode_begin % 16) < 8) {
+                    sfRectangleShape_setPosition(black_rectangle,
+                        (sfVector2f){24, 208});
+                    sfRectangleShape_setSize(black_rectangle,
+                        (sfVector2f){24, 8});
+                    sfRenderWindow_drawRectangleShape(self->window,
+                        black_rectangle, NULL);
+                }
             }
-        }
         sfRectangleShape_destroy(black_rectangle);
         sfRenderWindow_drawText(self->window, self->current_round_text, NULL);
         sfRenderWindow_drawText(self->window, self->current_score_text, NULL);
@@ -884,14 +947,18 @@ static void game_draw(struct game *self)
 
 static void game_do_score_from_color(struct game *self, struct duck *duck)
 {
-    int added_score;
+    static const int score_table[3][3] =
+    {
+        {500, 1500, 1000},
+        {800, 2400, 1600},
+        {1000, 3000, 2000}
+    };
+    int added_score = score_table[0][duck->color];
 
-    if (duck->color == 0)
-        added_score = 500;
-    if (duck->color == 1)
-        added_score = 1500;
-    if (duck->color == 2)
-        added_score = 1000;
+    if (self->current_round >= 6)
+        added_score = score_table[1][duck->color];
+    if (self->current_round >= 11)
+        added_score = score_table[2][duck->color];
     game_set_current_score(self, self->current_score + added_score);
     text_set_printf(duck->score_text, "%d", added_score);
 }
@@ -941,8 +1008,6 @@ void game_main_loop(struct game *self)
     sfEvent event;
 
     game_set_mode(self, GAME_MODE_TITLE);
-    game_set_mode(self, GAME_MODE_START_ROUND);
-    game_set_mode(self, GAME_MODE_SESSION);
     while (sfRenderWindow_isOpen(self->window)) {
         while (sfRenderWindow_pollEvent(self->window, &event)) {
             if (event.type == sfEvtClosed)
@@ -961,6 +1026,12 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->game_over_dog_sound);
+    sfSoundBuffer_destroy(self->game_over_dog_sound_buffer);
+    sfSound_destroy(self->game_over_sound);
+    sfSoundBuffer_destroy(self->game_over_sound_buffer);
+    sfSound_destroy(self->end_round_success_sound);
+    sfSoundBuffer_destroy(self->end_round_success_sound_buffer);
     sfSound_destroy(self->round_ducks_move_sound);
     sfSoundBuffer_destroy(self->round_ducks_move_sound_buffer);
     sfSound_destroy(self->dog_mocking_sound);
