@@ -5,7 +5,8 @@
 ** Implements main
 */
 
-#include "game.h"
+#include "game/create.h"
+#include "game/game.h"
 #include "my/stdio.h"
 #include "my/string.h"
 #include <stdlib.h>

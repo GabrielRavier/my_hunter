@@ -7,9 +7,10 @@
 
 #pragma once
 
-#include <SFML/Graphics.h>
-#include <SFML/Audio.h>
+#include <SFML/Graphics/Types.h>
+#include <SFML/Audio/Types.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 struct duck {
@@ -107,6 +108,5 @@ struct game {
     } mode;
 };
 
-bool game_create(struct game *self);
 void game_main_loop(struct game *self);
 void game_destroy(struct game *self);
