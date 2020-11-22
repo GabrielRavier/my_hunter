@@ -80,6 +80,8 @@ struct game {
     sfSound *gottem_sound;
     sfSoundBuffer *dog_mocking_sound_buffer;
     sfSound *dog_mocking_sound;
+    sfSoundBuffer *round_ducks_move_sound_buffer;
+    sfSound *round_ducks_move_sound;
     int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;
@@ -89,7 +91,8 @@ struct game {
         GAME_MODE_START_ROUND,
         GAME_MODE_SESSION,
         GAME_MODE_SESSION_FLY_AWAY,
-        GAME_MODE_END_SESSION
+        GAME_MODE_END_SESSION,
+        GAME_MODE_END_ROUND
     } mode;
 };
 

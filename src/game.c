@@ -60,7 +60,7 @@ static void set_top_score(int top_score)
         my_dputs("Failed to open top_score.txt\n", STDERR_FILENO);
         return;
     }
-    my_dprintf(fd, "%d", top_score);
+    my_dprintf(fd, "%" PRId32, top_score);
     close(fd);
 }
 
@@ -251,6 +251,13 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->dog_mocking_sound,
         self->dog_mocking_sound_buffer);
+    self->round_ducks_move_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/round_ducks_move.wav");
+    self->round_ducks_move_sound = sfSound_create();
+    if (!self->round_ducks_move_sound)
+        return (false);
+    sfSound_setBuffer(self->round_ducks_move_sound,
+        self->round_ducks_move_sound_buffer);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -330,7 +337,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     if (self->mode == GAME_MODE_END_SESSION) {
         self->current_round_ducks_index += self->selected_game + 1;
         if (self->current_round_ducks_index >= MY_ARRAY_SIZE(self->round_ducks))
-            exit(0);//mode = GAME_MODE_END_ROUND;
+            mode = GAME_MODE_END_ROUND;
     }
     self->mode = mode;
     if (self->mode == GAME_MODE_TITLE) {
@@ -420,6 +427,7 @@ static void do_flying_dog_movement(struct game *self)
         1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, -1, 0, -1, -1, -2,
         -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3};
     int index = self->frames_since_mode_begin - 368;
+
     sfSprite_setPosition(self->dog_sprite, (sfVector2f){
         sfSprite_getPosition(self->dog_sprite).x +
             (index < 42 ? table_x[index] : 0),
@@ -661,6 +669,30 @@ static void game_update_end_session(struct game *self)
         game_set_mode(self, GAME_MODE_SESSION);
 }
 
+static void game_update_end_round(struct game *self)
+{
+    bool is_finished_sorting = true;
+    size_t killed_ducks;
+
+    for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
+        if (self->round_ducks[i].state == ROUND_DUCK_LIVES &&
+            self->round_ducks[i + 1].state == ROUND_DUCK_DEAD)
+            is_finished_sorting = false;
+    if (!is_finished_sorting && ((self->frames_since_mode_begin % 17) == 0)) {
+        sfSound_play(self->round_ducks_move_sound);
+        for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
+            if (self->round_ducks[i].state == ROUND_DUCK_LIVES &&
+                self->round_ducks[i + 1].state == ROUND_DUCK_DEAD) {
+                self->round_ducks[i].state = ROUND_DUCK_DEAD;
+                self->round_ducks[i + 1].state = ROUND_DUCK_LIVES;
+            }
+    }
+    else {
+        for (killed_ducks = 0; killed_ducks < MY_ARRAY_SIZE(self->round_ducks);
+             ++killed_ducks);
+    }
+}
+
 // The music resets every 2800 frames or so
 static void game_update(struct game *self)
 {
@@ -721,11 +753,15 @@ static void game_update(struct game *self)
     }
     if (self->mode == GAME_MODE_SESSION ||
         self->mode == GAME_MODE_START_ROUND ||
-        self->mode == GAME_MODE_SESSION_FLY_AWAY)
+        self->mode == GAME_MODE_SESSION_FLY_AWAY ||
+        self->mode == GAME_MODE_END_SESSION ||
+        self->mode == GAME_MODE_END_ROUND)
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)
             round_duck_update(&self->round_ducks[i], self, i);
     if (self->mode == GAME_MODE_END_SESSION)
         game_update_end_session(self);
+    if (self->mode == GAME_MODE_END_ROUND)
+        game_update_end_round(self);
 }
 
 static void game_draw_shoot_frame(struct game *self)
@@ -780,7 +816,8 @@ static void game_draw(struct game *self)
     if (self->mode == GAME_MODE_START_ROUND ||
         self->mode == GAME_MODE_SESSION ||
         self->mode == GAME_MODE_SESSION_FLY_AWAY ||
-        self->mode == GAME_MODE_END_SESSION) {
+        self->mode == GAME_MODE_END_SESSION ||
+        self->mode == GAME_MODE_END_ROUND) {
         game_draw_background_color(self);
         if (self->mode == GAME_MODE_SESSION ||
             self->mode == GAME_MODE_SESSION_FLY_AWAY)
@@ -924,6 +961,8 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->round_ducks_move_sound);
+    sfSoundBuffer_destroy(self->round_ducks_move_sound_buffer);
     sfSound_destroy(self->dog_mocking_sound);
     sfSoundBuffer_destroy(self->dog_mocking_sound_buffer);
     sfSound_destroy(self->gottem_sound);
