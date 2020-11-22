@@ -53,6 +53,7 @@ bool game_create(struct game *self)
         "Duck Hunt but it's done with CSFML", sfDefaultStyle, NULL);
     if (!self->window)
         return (false);
+    sfRenderWindow_setSize(self->window, (sfVector2u){256 * 4, 224 * 4});
     sfRenderWindow_setFramerateLimit(self->window, 60);
     sfRenderWindow_setVerticalSyncEnabled(self->window, true);
     self->title_texture = sfTexture_createFromFile(
@@ -793,9 +794,12 @@ static void game_update(struct game *self)
                 self->frames_since_mode_begin < 335))
                 game_advance_dog(self);
             else {
-                sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){
-                    (56 * ((self->frames_since_mode_begin % 14) == 0)) - 1,
-                    69, 56, 112 - 69});
+                if ((self->frames_since_mode_begin % 14) == 0)
+                    sfSprite_setTextureRect(self->dog_sprite,
+                        (sfIntRect){55, 69, 109 - 55, 112 - 69});
+                else
+                    sfSprite_setTextureRect(self->dog_sprite,
+                        (sfIntRect){-1, 69, 56, 112 - 69});
             }
         }
         if (self->frames_since_mode_begin > 130)
