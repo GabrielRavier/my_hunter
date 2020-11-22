@@ -39,6 +39,11 @@ struct round_duck {
     sfSprite *sprite;
 };
 
+struct sound_with_buffer {
+    sfSoundBuffer *buffer;
+    sfSound *sf_sound;
+};
+
 // selected_game is either 0, 1, or 2 to A, B or C
 struct game {
     sfRenderWindow *window;
@@ -70,30 +75,18 @@ struct game {
     sfText *current_round_text;
     sfText *text_box_text;
     sfMusic *current_music;
-    sfSoundBuffer *duck_sound_buffer;
-    sfSound *duck_sound;
-    sfSoundBuffer *flying_sound_buffer;
-    sfSound *flying_sound;
-    sfSoundBuffer *gun_shoot_sound_buffer;
-    sfSound *gun_shoot_sound;
-    sfSoundBuffer *duck_falling_sound_buffer;
-    sfSound *duck_falling_sound;
-    sfSoundBuffer *duck_thud_sound_buffer;
-    sfSound *duck_thud_sound;
-    sfSoundBuffer *gottem_sound_buffer;
-    sfSound *gottem_sound;
-    sfSoundBuffer *dog_mocking_sound_buffer;
-    sfSound *dog_mocking_sound;
-    sfSoundBuffer *round_ducks_move_sound_buffer;
-    sfSound *round_ducks_move_sound;
-    sfSoundBuffer *end_round_success_sound_buffer;
-    sfSound *end_round_success_sound;
-    sfSoundBuffer *game_over_sound_buffer;
-    sfSound *game_over_sound;
-    sfSoundBuffer *game_over_dog_sound_buffer;
-    sfSound *game_over_dog_sound;
-    sfSoundBuffer *perfect_sound_buffer;
-    sfSound *perfect_sound;
+    struct sound_with_buffer duck_sound;
+    struct sound_with_buffer flying_sound;
+    struct sound_with_buffer gun_shoot_sound;
+    struct sound_with_buffer duck_falling_sound;
+    struct sound_with_buffer duck_thud_sound;
+    struct sound_with_buffer gottem_sound;
+    struct sound_with_buffer dog_mocking_sound;
+    struct sound_with_buffer round_ducks_move_sound;
+    struct sound_with_buffer end_round_success_sound;
+    struct sound_with_buffer game_over_sound;
+    struct sound_with_buffer game_over_dog_sound;
+    struct sound_with_buffer perfect_sound;
     int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;

@@ -10,4 +10,3 @@
 #include <SFML/Graphics/Types.h>
 
 void text_set_printf(sfText *text, const char *format, ...);
-sfText *make_nes_text(sfFont *nes_font);

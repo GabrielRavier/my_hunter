@@ -26,13 +26,3 @@ void text_set_printf(sfText *text, const char *format, ...)
     free(formatted_string);
 }
 
-sfText *make_nes_text(sfFont *nes_font)
-{
-    sfText *result = sfText_create();
-    static const int NES_CHARACTER_SIZE = 8;
-
-    MY_ASSERT(result);
-    sfText_setFont(result, nes_font);
-    sfText_setCharacterSize(result, NES_CHARACTER_SIZE);
-    return result;
-}
