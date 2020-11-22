@@ -48,6 +48,7 @@ struct game {
     sfSprite *title_background_sprite;
     sfSprite *title_cursor_sprite;
     sfSprite *gameplay_background_sprite;
+    sfSprite *fly_away_sprite;
     bool should_draw_text_box;
     sfSprite *text_box_sprite;
     sfSprite *dog_sprite;
@@ -85,6 +86,7 @@ struct game {
         GAME_MODE_TITLE,
         GAME_MODE_START_ROUND,
         GAME_MODE_SESSION,
+        GAME_MODE_SESSION_FLY_AWAY,
         GAME_MODE_END_SESSION
     } mode;
 };
