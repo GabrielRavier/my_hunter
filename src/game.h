@@ -29,10 +29,10 @@ struct duck {
 };
 
 struct round_duck {
-    enum {
-        ROUND_DUCK_LIVES,
-        ROUND_DUCK_DEAD,
-        ROUND_DUCK_FLYING
+    enum round_duck_state {
+        ROUND_DUCK_STATE_LIVES,
+        ROUND_DUCK_STATE_DEAD,
+        ROUND_DUCK_STATE_FLYING,
     } state;
     sfSprite *sprite;
 };

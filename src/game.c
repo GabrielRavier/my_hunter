@@ -357,7 +357,7 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)  {
             sfSprite_setTextureRect(self->round_ducks[i].sprite,
                 (sfIntRect){0, 0, 0, 0});
-            self->round_ducks[i].state = ROUND_DUCK_LIVES;
+            self->round_ducks[i].state = ROUND_DUCK_STATE_LIVES;
         }
         self->current_round_ducks_index = 0;
         self->shots_left = 3;
@@ -368,10 +368,10 @@ static void game_set_mode(struct game *self, enum game_mode mode)
         self->current_music = NULL;
         self->ducks[0].state = DUCK_STATE_FLYING;
         self->round_ducks[self->current_round_ducks_index].state =
-            ROUND_DUCK_FLYING;
+            ROUND_DUCK_STATE_FLYING;
         if (self->selected_game == 1) {
             self->round_ducks[self->current_round_ducks_index + 1].state =
-                ROUND_DUCK_FLYING;
+                ROUND_DUCK_STATE_FLYING;
             self->ducks[1].state = DUCK_STATE_FLYING;
         }
         else
@@ -442,7 +442,7 @@ static void duck_set_state(struct duck *self, struct game *game,
     self->frames_since_state_change = 0;
     if (self->state == DUCK_STATE_FALLING)
         game->round_ducks[(self - game->ducks) +
-            game->current_round_ducks_index].state = ROUND_DUCK_DEAD;
+            game->current_round_ducks_index].state = ROUND_DUCK_STATE_DEAD;
     if (self->state == DUCK_STATE_DEAD) {
         sfText_setPosition(self->score_text, (sfVector2f){1000, 1000});
         sfSound_play(game->duck_thud_sound);
@@ -451,7 +451,7 @@ static void duck_set_state(struct duck *self, struct game *game,
     }
     if (self->state == DUCK_STATE_INACTIVE)
         game->round_ducks[(self - game->ducks) +
-            game->current_round_ducks_index].state = ROUND_DUCK_LIVES;
+            game->current_round_ducks_index].state = ROUND_DUCK_STATE_LIVES;
 }
 
 static void duck_set_text_position(struct duck *self)
@@ -602,10 +602,10 @@ static void round_duck_update(struct round_duck *self, struct game *game,
 
     sfSprite_setPosition(self->sprite,
         (sfVector2f){96 + (i * 8), 201});
-    if (self->state == ROUND_DUCK_DEAD)
+    if (self->state == ROUND_DUCK_STATE_DEAD)
         final_rect = rect_dead;
-    else if (self->state == ROUND_DUCK_LIVES ||
-        ((self->state == ROUND_DUCK_FLYING) &&
+    else if (self->state == ROUND_DUCK_STATE_LIVES ||
+        ((self->state == ROUND_DUCK_STATE_FLYING) &&
         ((game->frames_since_mode_begin % 32) < 16)))
         final_rect = rect_living;
     else
@@ -675,16 +675,16 @@ static void game_update_end_round(struct game *self)
     size_t killed_ducks;
 
     for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
-        if (self->round_ducks[i].state == ROUND_DUCK_LIVES &&
-            self->round_ducks[i + 1].state == ROUND_DUCK_DEAD)
+        if (self->round_ducks[i].state == ROUND_DUCK_STATE_LIVES &&
+            self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD)
             is_finished_sorting = false;
     if (!is_finished_sorting && ((self->frames_since_mode_begin % 17) == 0)) {
         sfSound_play(self->round_ducks_move_sound);
         for (size_t i = 0; i < (MY_ARRAY_SIZE(self->round_ducks) - 1); ++i)
-            if (self->round_ducks[i].state == ROUND_DUCK_LIVES &&
-                self->round_ducks[i + 1].state == ROUND_DUCK_DEAD) {
-                self->round_ducks[i].state = ROUND_DUCK_DEAD;
-                self->round_ducks[i + 1].state = ROUND_DUCK_LIVES;
+            if (self->round_ducks[i].state == ROUND_DUCK_STATE_LIVES &&
+                self->round_ducks[i + 1].state == ROUND_DUCK_STATE_DEAD) {
+                self->round_ducks[i].state = ROUND_DUCK_STATE_DEAD;
+                self->round_ducks[i + 1].state = ROUND_DUCK_STATE_LIVES;
             }
     }
     else {
