@@ -8,6 +8,7 @@
 #include "game.h"
 #include "random.h"
 #include "top_score.h"
+#include "text_utils.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
 #include "my/assert.h"
@@ -21,28 +22,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static void text_set_printf(sfText *text, const char *format, ...)
-{
-    char *formatted_string;
-    va_list arguments;
-
-    va_start(arguments, format);
-    MY_ASSERT(my_vasprintf(&formatted_string, format, arguments) >= 0);
-    va_end(arguments);
-    sfText_setString(text, formatted_string);
-    free(formatted_string);
-}
-
-static sfText *make_nes_text(sfFont *nes_font)
-{
-    sfText *result = sfText_create();
-
-    MY_ASSERT(result);
-    sfText_setFont(result, nes_font);
-    sfText_setCharacterSize(result, 8);
-    return result;
-}
 
 // We can't disable font anti-aliasing. Oh well, I guess the game will only be
 // pretty on NES resolution, then ¯\_(ツ)_/¯
@@ -523,7 +502,7 @@ static void duck_update(struct duck *self, struct game *game)
                 final_rect.top, -final_rect.width, final_rect.height};
         sfSprite_setTextureRect(self->sprite, final_rect);
         self_bounds = sfSprite_getGlobalBounds(self->sprite);
-        if (game->shots_left == 0) {
+        if (game->shots_left == 0 || game->mode == GAME_MODE_SESSION_FLY_AWAY) {
             if (((self_bounds.left + self_bounds.width) < 0) ||
                (self_bounds.left > 256) ||
                ((self_bounds.top + self_bounds.height) < 0))

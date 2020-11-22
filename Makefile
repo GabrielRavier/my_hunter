@@ -24,7 +24,7 @@ BINARY_NAME := my_hunter
 all: $(BINARY_NAME)
 
 # Sources for this project
-SOURCE_FILES := main game random top_score
+SOURCE_FILES := main game random top_score text_utils
 
 OBJECT_FILES := $(addprefix obj/, $(addsuffix .o, $(SOURCE_FILES)))
 
