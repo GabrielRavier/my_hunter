@@ -940,7 +940,6 @@ void game_destroy(struct game *self)
     sfText_destroy(self->state.current_round.as_text);
     sfText_destroy(self->state.scores.current_as_text);
     sfText_destroy(self->state.scores.top_as_text);
-    set_top_score(self->state.scores.top_as_int);
     for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i) {
         sfText_destroy(self->state.session.ducks[i].score_text);
         sfSprite_destroy(self->state.session.ducks[i].sprite);
