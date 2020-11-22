@@ -50,7 +50,7 @@ bool game_create(struct game *self)
 {
     self->window = sfRenderWindow_create(
         (sfVideoMode){256, 224, sfVideoMode_getDesktopMode().bitsPerPixel},
-        "Duck Hunt but it's done with CSFML", sfResize | sfClose, NULL);
+        "Duck Hunt but it's done with CSFML", sfDefaultStyle, NULL);
     if (!self->window)
         return (false);
     sfRenderWindow_setFramerateLimit(self->window, 60);
