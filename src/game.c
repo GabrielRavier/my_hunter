@@ -91,6 +91,12 @@ bool game_create(struct game *self)
         return (false);
     sfSprite_setTexture(self->dog_sprite, self->dog_texture, false);
     sfSprite_setTextureRect(self->dog_sprite, (sfIntRect){0, 0, 0, 0});
+    self->perfect_box_sprite = sfSprite_create();
+    if (!self->perfect_box_sprite)
+        return (false);
+    sfSprite_setTexture(self->perfect_box_sprite, self->ducks_texture, false);
+    sfSprite_setTextureRect(self->perfect_box_sprite,
+        (sfIntRect){239, 127, 312 - 239, 160 - 127});
     for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i) {
         self->round_ducks[i].sprite = sfSprite_create();
         if (!self->round_ducks[i].sprite)
@@ -201,6 +207,13 @@ bool game_create(struct game *self)
         return (false);
     sfSound_setBuffer(self->game_over_dog_sound,
         self->game_over_dog_sound_buffer);
+    self->perfect_sound_buffer =
+        sfSoundBuffer_createFromFile("assets/perfect.wav");
+    self->perfect_sound = sfSound_create();
+    if (!self->perfect_sound)
+        return (false);
+    sfSound_setBuffer(self->perfect_sound,
+        self->perfect_sound_buffer);
     self->mode = GAME_MODE_NONE;
     return (true);
 }
@@ -369,6 +382,8 @@ static void game_set_mode(struct game *self, enum game_mode mode)
     if (self->mode == GAME_MODE_END_ROUND) {
         self->frame_finished_sorting = -1;
         sfSprite_setPosition(self->dog_sprite, (sfVector2f){1000, 1000});
+        sfSprite_setPosition(self->perfect_box_sprite,
+            (sfVector2f){1000, 1000});
     }
 }
 
@@ -726,10 +741,31 @@ static void game_update_end_round(struct game *self)
                         ROUND_DUCK_STATE_END_ROUND_FLASHING;
             }
             if (((uintmax_t)self->frame_finished_sorting + 280) ==
+                self->frames_since_mode_begin) {
+                if (killed_ducks < MY_ARRAY_SIZE(self->round_ducks))
+                    game_set_mode(self, GAME_MODE_START_ROUND);
+                else {
+                    game_set_current_score(self, self->current_score + 10000);
+                    sfSound_play(self->perfect_sound);
+                    sfSprite_setPosition(self->perfect_box_sprite,
+                        (sfVector2f){96, 48});
+                    for (size_t i = 0; i < killed_ducks; ++i)
+                        self->round_ducks[i].state = ROUND_DUCK_STATE_DEAD;
+                }
+            }
+            if (((uintmax_t)self->frame_finished_sorting + 450) ==
                 self->frames_since_mode_begin)
                 game_set_mode(self, GAME_MODE_START_ROUND);
         }
     }
+}
+
+static bool are_there_flying_ducks(struct game *self)
+{
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->ducks); ++i)
+        if (self->ducks[i].state == DUCK_STATE_FLYING)
+            return (true);
+    return (false);
 }
 
 // The music resets every 2800 frames or so
@@ -784,7 +820,8 @@ static void game_update(struct game *self)
         if (self->frames_since_mode_begin > 130)
             self->should_draw_text_box = false;
     }
-    if (self->mode == GAME_MODE_SESSION && self->frames_since_mode_begin > 260)
+    if (self->mode == GAME_MODE_SESSION &&
+        self->frames_since_mode_begin > 260 && are_there_flying_ducks(self))
         game_set_mode(self, GAME_MODE_SESSION_FLY_AWAY);
     if (self->mode == GAME_MODE_SESSION ||
         self->mode == GAME_MODE_SESSION_FLY_AWAY) {
@@ -920,6 +957,8 @@ static void game_draw(struct game *self)
         sfRenderWindow_drawSprite(self->window, self->text_box_sprite, NULL);
         sfRenderWindow_drawText(self->window, self->text_box_text, NULL);
     }
+    if (self->mode == GAME_MODE_END_ROUND)
+        sfRenderWindow_drawSprite(self->window, self->perfect_box_sprite, NULL);
     if (self->clear_screen_for_shoot) {
         self->clear_screen_for_shoot = false;
         sfRenderWindow_clear(self->window, sfBlack);
@@ -1009,6 +1048,8 @@ void game_main_loop(struct game *self)
 
 void game_destroy(struct game *self)
 {
+    sfSound_destroy(self->perfect_sound);
+    sfSoundBuffer_destroy(self->perfect_sound_buffer);
     sfSound_destroy(self->game_over_dog_sound);
     sfSoundBuffer_destroy(self->game_over_dog_sound_buffer);
     sfSound_destroy(self->game_over_sound);
@@ -1044,6 +1085,7 @@ void game_destroy(struct game *self)
     for (size_t i = 0; i < MY_ARRAY_SIZE(self->round_ducks); ++i)
         sfSprite_destroy(self->round_ducks[i].sprite);
     sfFont_destroy(self->nes_font);
+    sfSprite_destroy(self->perfect_box_sprite);
     sfSprite_destroy(self->fly_away_sprite);
     sfSprite_destroy(self->dog_sprite);
     sfSprite_destroy(self->text_box_sprite);

@@ -50,6 +50,7 @@ struct game {
     sfSprite *title_cursor_sprite;
     sfSprite *gameplay_background_sprite;
     sfSprite *fly_away_sprite;
+    sfSprite *perfect_box_sprite;
     bool should_draw_text_box;
     sfSprite *text_box_sprite;
     sfSprite *dog_sprite;
@@ -90,6 +91,8 @@ struct game {
     sfSound *game_over_sound;
     sfSoundBuffer *game_over_dog_sound_buffer;
     sfSound *game_over_dog_sound;
+    sfSoundBuffer *perfect_sound_buffer;
+    sfSound *perfect_sound;
     int shots_left;
     int selected_game;
     uintmax_t frames_since_mode_begin;
