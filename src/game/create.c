@@ -73,6 +73,24 @@ static bool make_textures(struct game_textures *self)
     return (true);
 }
 
+static bool make_sprites_part2(struct game_sprites *self,
+    const struct game_textures *textures)
+{
+    if (!make_sprite(&self->text_box, textures->ducks, false))
+        return (false);
+    sfSprite_setTextureRect(self->text_box,
+        (sfIntRect){184, 127, 233 - 184, 160 - 127});
+    sfSprite_setPosition(self->text_box, (sfVector2f){104, 48});
+    if (!make_sprite(&self->dog, textures->dog, false))
+        return (false);
+    sfSprite_setTextureRect(self->dog, (sfIntRect){0, 0, 0, 0});
+    if (!make_sprite(&self->perfect_box, textures->ducks, false))
+        return (false);
+    sfSprite_setTextureRect(self->perfect_box,
+        (sfIntRect){239, 127, 312 - 239, 160 - 127});
+    return (true);
+}
+
 static bool make_sprites(struct game_sprites *self,
     const struct game_textures *textures)
 {
@@ -89,19 +107,7 @@ static bool make_sprites(struct game_sprites *self,
     sfSprite_setTextureRect(self->fly_away,
         (sfIntRect){54, 129, 127 - 54, 146 - 129});
     sfSprite_setPosition(self->fly_away, (sfVector2f){96, 56});
-    if (!make_sprite(&self->text_box, textures->ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->text_box,
-        (sfIntRect){184, 127, 233 - 184, 160 - 127});
-    sfSprite_setPosition(self->text_box, (sfVector2f){104, 48});
-    if (!make_sprite(&self->dog, textures->dog, false))
-        return (false);
-    sfSprite_setTextureRect(self->dog, (sfIntRect){0, 0, 0, 0});
-    if (!make_sprite(&self->perfect_box, textures->ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->perfect_box,
-        (sfIntRect){239, 127, 312 - 239, 160 - 127});
-    return (true);
+    return (make_sprites_part2(self, textures));
 }
 
 static bool make_session_duck(struct session_duck *self, struct game *game)
@@ -140,34 +146,47 @@ static bool make_scores(struct game_scores *self, sfFont *nes_font)
 
 static bool make_sounds(struct game_sounds *self)
 {
-    if (!make_sound(&self->duck, "assets/duck.wav"))
-        return (false);
+    struct {
+        struct sound_with_buffer *ptr;
+        const char *filename;
+    } sounds_to_make[] = {{&self->duck, "assets/duck.wav"}, {&self->flying,
+        "assets/flying.wav"}, {&self->gun_shoot, "assets/gun_shoot.wav"},
+        {&self->duck_falling, "assets/duck_falling.wav"}, {&self->duck_thud,
+        "assets/duck_thud.wav"}, {&self->gottem, "assets/gottem.wav"},
+        {&self->dog_mocking, "assets/dog_mocking.wav"},
+        {&self->round_ducks_move, "assets/round_ducks_move.wav"},
+        {&self->end_round_success, "assets/end_round_success.wav"},
+        {&self->game_over, "assets/game_over.wav"}, {&self->game_over_dog,
+        "assets/game_over_dog.wav"}, {&self->perfect, "assets/perfect.wav"}};
+
+    for (size_t i = 0; i < MY_ARRAY_SIZE(sounds_to_make); ++i)
+        if (!make_sound(sounds_to_make[i].ptr, sounds_to_make[i].filename))
+            return (false);
     sfSound_setLoop(self->duck.sf_sound, true);
-    if (!make_sound(&self->flying, "assets/flying.wav"))
-        return (false);
     sfSound_setLoop(self->flying.sf_sound, true);
-    if (!make_sound(&self->gun_shoot, "assets/gun_shoot.wav"))
+    return (true);
+}
+
+static bool make_game_state_stuff(struct game_state *self, struct game *game)
+{
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->round.ducks); ++i)
+        if (!make_sprite(&self->round.ducks[i].sprite,
+            game->resources.textures.background, false))
+            return (false);
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->session.ducks); ++i)
+        if (!make_session_duck(&self->session.ducks[i], game))
+            return (false);
+    self->session.clear_screen_for_shoot = false;
+    if (!make_scores(&self->scores, game->resources.nes_font))
         return (false);
-    if (!make_sound(&self->duck_falling, "assets/duck_falling.wav"))
+    if (!make_nes_text(&self->text_box.text,
+        game->resources.nes_font))
         return (false);
-    if (!make_sound(&self->duck_thud, "assets/duck_thud.wav"))
+    if (!make_nes_text(&self->current_round.as_text,
+        game->resources.nes_font))
         return (false);
-    if (!make_sound(&self->gottem, "assets/gottem.wav"))
-        return (false);
-    if (!make_sound(&self->dog_mocking, "assets/dog_mocking.wav"))
-        return (false);
-    if (!make_sound(&self->round_ducks_move,
-        "assets/round_ducks_move.wav"))
-        return (false);
-    if (!make_sound(&self->end_round_success,
-        "assets/end_round_success.wav"))
-        return (false);
-    if (!make_sound(&self->game_over, "assets/game_over.wav"))
-        return (false);
-    if (!make_sound(&self->game_over_dog, "assets/game_over_dog.wav"))
-        return (false);
-    if (!make_sound(&self->perfect, "assets/perfect.wav"))
-        return (false);
+    self->current_music = NULL;
+    self->mode = GAME_MODE_NONE;
     return (true);
 }
 
@@ -183,32 +202,16 @@ bool game_create(struct game *self)
     sfRenderWindow_setSize(self->window, (sfVector2u){256 * 4, 224 * 4});
     sfRenderWindow_setFramerateLimit(self->window, 60);
     sfRenderWindow_setVerticalSyncEnabled(self->window, true);
+    self->resources.nes_font = sfFont_createFromFile("assets/nes_font.ttf");
+    if (self->resources.nes_font == NULL)
+        return (false);
     if (!make_textures(&self->resources.textures))
         return (false);
     if (!make_sprites(&self->resources.sprites, &self->resources.textures))
         return (false);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.round.ducks); ++i)
-        if (!make_sprite(&self->state.round.ducks[i].sprite,
-            self->resources.textures.background, false))
-            return (false);
-    self->resources.nes_font = sfFont_createFromFile("assets/nes_font.ttf");
-    if (self->resources.nes_font == NULL)
-        return (false);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
-        if (!make_session_duck(&self->state.session.ducks[i], self))
-            return (false);
-    self->state.session.clear_screen_for_shoot = false;
-    if (!make_scores(&self->state.scores, self->resources.nes_font))
-        return (false);
-    if (!make_nes_text(&self->state.text_box.text,
-        self->resources.nes_font))
-        return (false);
-    if (!make_nes_text(&self->state.current_round.as_text,
-        self->resources.nes_font))
-        return (false);
-    self->state.current_music = NULL;
     if (!make_sounds(&self->resources.sounds))
         return (false);
-    self->state.mode = GAME_MODE_NONE;
+    if (!make_game_state_stuff(&self->state, self))
+        return (false);
     return (true);
 }
