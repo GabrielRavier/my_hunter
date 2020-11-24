@@ -7,8 +7,9 @@
 
 #include "../game.h"
 #include "change_music.h"
-#include "set_current/round.h"
-#include "set_current/score.h"
+#include "set/current/round.h"
+#include "set/current/score.h"
+#include "set/mode.h"
 #include "center_text_box_text.h"
 #include "update/do.h"
 #include "get_duck_speed.h"
@@ -37,97 +38,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static void game_set_mode(struct game *self, enum game_mode mode)
-{
-    self->state.frames_since_mode_begin = 0;
-    if (self->state.mode == GAME_MODE_TITLE) {
-        game_set_current_round(&self->state.current_round, 0);
-        game_set_current_score(&self->state.scores, 0);
-        sfSprite_setTextureRect(self->resources.sprites.gameplay_background,
-            (sfIntRect){(512 * (self->state.title.selected_game == 2)), 8, 255,
-            224});
-    }
-    if (self->state.mode == GAME_MODE_SESSION ||
-        self->state.mode == GAME_MODE_SESSION_FLY_AWAY) {
-        if (mode != GAME_MODE_SESSION_FLY_AWAY) {
-            sfSound_stop(self->resources.sounds.duck.sf_sound);
-            sfSound_stop(self->resources.sounds.flying.sf_sound);
-        }
-    }
-    if (self->state.mode == GAME_MODE_END_SESSION) {
-        self->state.round.current_ducks_index +=
-            self->state.title.selected_game + 1;
-        if (self->state.round.current_ducks_index >=
-            MY_ARRAY_SIZE(self->state.round.ducks))
-            mode = GAME_MODE_END_ROUND;
-    }
-    self->state.mode = mode;
-    if (self->state.mode == GAME_MODE_TITLE) {
-        game_change_music(&self->state.current_music, "assets/title.ogg");
-        self->state.text_box.should_draw = false;
-        self->state.title.selected_game = 0;
-    }
-    if (self->state.mode == GAME_MODE_START_ROUND) {
-        game_change_music(&self->state.current_music, "assets/start_round.ogg");
-        game_set_current_round(&self->state.current_round,
-            self->state.current_round.as_int + 1);
-        self->state.text_box.should_draw = true;
-        text_set_printf(self->state.text_box.text, "ROUND\n\n %2d",
-            self->state.current_round.as_int);
-        sfText_setColor(self->state.text_box.text,
-            sfColor_fromRGB(252, 252, 252));
-        game_center_text_box_text(self->state.text_box.text);
-        sfSprite_setPosition(self->resources.sprites.dog, (sfVector2f){2, 136});
-        sfSprite_setTextureRect(self->resources.sprites.dog,
-            (sfIntRect){0, 0, 0, 0});
-        for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.round.ducks); ++i) {
-            sfSprite_setTextureRect(self->state.round.ducks[i].sprite,
-                (sfIntRect){0, 0, 0, 0});
-            self->state.round.ducks[i].state = ROUND_DUCK_STATE_LIVES;
-        }
-        self->state.round.current_ducks_index = 0;
-    }
-    if (self->state.mode == GAME_MODE_SESSION) {
-        self->state.text_box.should_draw = false;
-        sfMusic_destroy(self->state.current_music);
-        self->state.current_music = NULL;
-        self->state.session.ducks[0].state = DUCK_STATE_FLYING;
-        self->state.round.ducks[self->state.round.current_ducks_index].state =
-            ROUND_DUCK_STATE_FLYING;
-        if (self->state.title.selected_game == 1) {
-            self->state.round.ducks[self->state.round.current_ducks_index + 1]
-                .state = ROUND_DUCK_STATE_FLYING;
-            self->state.session.ducks[1].state = DUCK_STATE_FLYING;
-        }
-        else
-            self->state.session.ducks[1].state = DUCK_STATE_INACTIVE;
-        sfSound_play(self->resources.sounds.duck.sf_sound);
-        sfSound_play(self->resources.sounds.flying.sf_sound);
-        for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
-            if (self->state.session.ducks[i].state != DUCK_STATE_INACTIVE) {
-                sfSprite_setPosition(self->state.session.ducks[i].sprite,
-                    (sfVector2f){random_int_between(0, 256 - (33 - 6)),
-                        184 - (119 - 89)});
-                self->state.session.ducks[i].color = random_int_between(0, 2);
-                self->state.session.ducks[i].speed =
-                    game_get_duck_speed(&self->state,
-                        &self->state.session.ducks[i]);
-                self->state.session.ducks[i].angle =
-                    atan2f(120 - sfSprite_getPosition(
-                    self->state.session.ducks[i].sprite).y,
-                    random_int_between(25, 230) - sfSprite_getPosition(
-                    self->state.session.ducks[i].sprite).x);
-            }
-        self->state.session.shots_left = 3;
-    }
-    if (self->state.mode == GAME_MODE_END_ROUND) {
-        self->state.round.frame_finished_sorting = -1;
-        sfSprite_setPosition(self->resources.sprites.dog, (sfVector2f){1000, 1000});
-        sfSprite_setPosition(self->resources.sprites.perfect_box,
-            (sfVector2f){1000, 1000});
-    }
-}
 
 static void game_handle_key(struct game *self, sfKeyCode key_code)
 {

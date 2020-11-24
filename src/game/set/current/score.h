@@ -7,6 +7,6 @@
 
 #pragma once
 
-#include "../scores.h"
+#include "../../scores.h"
 
 void game_set_current_score(struct game_scores *self, int new_score);

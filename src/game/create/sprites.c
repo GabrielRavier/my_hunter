@@ -37,6 +37,8 @@ bool make_sprites(struct game_sprites *self,
     if (!make_sprite(&self->gameplay_background,
         textures->background, false))
         return (false);
+    sfSprite_setTextureRect(self->gameplay_background,
+        (sfIntRect){0, 8, 255, 224});
     if (!make_sprite(&self->fly_away, textures->ducks, false))
         return (false);
     sfSprite_setTextureRect(self->fly_away,

@@ -7,6 +7,6 @@
 
 #pragma once
 
-#include "../round.h"
+#include "../../round.h"
 
 void game_set_current_round(struct game_round *self, int new_round);

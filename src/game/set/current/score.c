@@ -6,8 +6,8 @@
 */
 
 #include "score.h"
-#include "../../top_score.h"
-#include "../../text_utils.h"
+#include "../../../top_score.h"
+#include "../../../text_utils.h"
 #include <SFML/Graphics/Text.h>
 #include <inttypes.h>
 
