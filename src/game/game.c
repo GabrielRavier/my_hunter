@@ -72,7 +72,7 @@ static void do_flying_dog_movement(struct game *self)
             (index < 51 ? table_y[index] : 0)});
 }
 
-static void duck_set_state(struct session_duck *self, struct game *game,
+static void session_duck_set_state(struct session_duck *self, struct game *game,
     enum duck_state state)
 {
     self->state = state;
@@ -93,7 +93,7 @@ static void duck_set_state(struct session_duck *self, struct game *game,
             game->state.round.current_ducks_index].state = ROUND_DUCK_STATE_LIVES;
 }
 
-static void duck_set_text_position(struct session_duck *self)
+static void session_duck_set_text_position(struct session_duck *self)
 {
     sfFloatRect text_bounds = sfText_getGlobalBounds(self->score_text);
     sfFloatRect duck_bounds = sfSprite_getGlobalBounds(self->sprite);
@@ -105,7 +105,7 @@ static void duck_set_text_position(struct session_duck *self)
              ((duck_bounds.height - text_bounds.height) / 2))});
 }
 
-static void duck_update(struct session_duck *self, struct game *game)
+static void session_duck_update(struct session_duck *self, struct game *game)
 {
     int which_sprite = ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >=
         3) + ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
@@ -166,7 +166,7 @@ static void duck_update(struct session_duck *self, struct game *game)
             if (((self_bounds.left + self_bounds.width) < 0) ||
                (self_bounds.left > 256) ||
                ((self_bounds.top + self_bounds.height) < 0))
-            duck_set_state(self, game, DUCK_STATE_INACTIVE);
+            session_duck_set_state(self, game, DUCK_STATE_INACTIVE);
         } else {
             if (self_bounds.left < 0) {
                 if (cosf(self->angle) < 0) {
@@ -174,7 +174,7 @@ static void duck_update(struct session_duck *self, struct game *game)
                         random_float_between(-0.25f, 0.25f);
                     if (random_int_between(0, 5) != 0)
                         self->angle = -self->angle;
-                    duck_update(self, game);
+                    session_duck_update(self, game);
                 }
             }
             if ((self_bounds.left + self_bounds.width) > 256) {
@@ -183,14 +183,14 @@ static void duck_update(struct session_duck *self, struct game *game)
                         random_float_between(-0.25f, 0.25f);
                     if (random_int_between(0, 5) != 0)
                         self->angle = -self->angle;
-                    duck_update(self, game);
+                    session_duck_update(self, game);
                 }
             }
             if (self_bounds.top < 0) {
                 if (sinf(self->angle) < 0) {
                     self->angle = -self->angle +
                         random_float_between(-0.25f, 0.25f);
-                    duck_update(self, game);
+                    session_duck_update(self, game);
                 }
             }
         }
@@ -198,7 +198,7 @@ static void duck_update(struct session_duck *self, struct game *game)
             if (sinf(self->angle) > 0) {
                 self->angle = -self->angle +
                         random_float_between(-0.25f, 0.25f);
-                duck_update(self, game);
+                session_duck_update(self, game);
             }
         }
     }
@@ -212,7 +212,7 @@ static void duck_update(struct session_duck *self, struct game *game)
                 final_rect);
         } else if (self->frames_since_state_change == 22) {
             sfSound_play(game->resources.sounds.duck_falling.sf_sound);
-            duck_set_text_position(self);
+            session_duck_set_text_position(self);
         } else {
             if (self->frames_since_state_change > (22 + 45))
                 sfText_setPosition(self->score_text, (sfVector2f){1000, 1000});
@@ -223,7 +223,7 @@ static void duck_update(struct session_duck *self, struct game *game)
             current_position.y += 2;
             sfSprite_setPosition(self->sprite, current_position);
             if (current_position.y > 184 - (119 - 89))
-                duck_set_state(self, game, DUCK_STATE_DEAD);
+                session_duck_set_state(self, game, DUCK_STATE_DEAD);
             final_rect = rects[self->color][7];
             if ((self->frames_since_state_change % 10) < 5)
                 final_rect = (sfIntRect){final_rect.left + final_rect.width,
@@ -478,7 +478,7 @@ static void game_update(struct game *self)
     if (self->state.mode == GAME_MODE_SESSION ||
         self->state.mode == GAME_MODE_SESSION_FLY_AWAY) {
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
-            duck_update(&self->state.session.ducks[i], self);
+            session_duck_update(&self->state.session.ducks[i], self);
         game_update_do_sounds_stop_if_no_ducks_flying(self);
         game_update_do_change_to_end_session_if_all_ducks_dead(self);
     }
@@ -680,7 +680,7 @@ static void game_handle_mouse_press(struct game *self,
                     there_were_ducks = true;
                     if (sfFloatRect_contains(&tmp_duck_rect,
                         real_mouse_coordinates.x, real_mouse_coordinates.y)) {
-                        duck_set_state(&self->state.session.ducks[i], self,
+                        session_duck_set_state(&self->state.session.ducks[i], self,
                             DUCK_STATE_FALLING);
                         game_do_shot_duck_score(self,
                             &self->state.session.ducks[i]);
