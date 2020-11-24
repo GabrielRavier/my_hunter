@@ -7,6 +7,6 @@
 
 #pragma once
 
-#include "game.h"
+#include "../game.h"
 
 bool game_create(struct game *self, bool is_original_resolution);

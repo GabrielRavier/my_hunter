@@ -6,7 +6,7 @@
 */
 
 #include "game/create.h"
-#include "game/game.h"
+#include "game.h"
 #include "my/stdio.h"
 #include "my/string.h"
 #include <stdlib.h>

@@ -7,7 +7,13 @@
 
 #pragma once
 
-#include "../game.h"
+#include "../textures.h"
+#include "../sprites.h"
+#include "../session_duck.h"
+#include "../sounds.h"
+#include "../scores.h"
+#include "../state.h"
+#include "../../game.h"
 #include <SFML/Graphics/Types.h>
 #include <stdbool.h>
 

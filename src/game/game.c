@@ -5,10 +5,16 @@
 ** Implements game
 */
 
-#include "game/game.h"
-#include "random.h"
-#include "top_score.h"
-#include "text_utils.h"
+#include "../game.h"
+#include "change_music.h"
+#include "set_current/round.h"
+#include "set_current/score.h"
+#include "center_text_box_text.h"
+#include "update/do.h"
+#include "get_duck_speed.h"
+#include "../random.h"
+#include "../top_score.h"
+#include "../text_utils.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
 #include "my/assert.h"
@@ -31,89 +37,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static void game_set_current_round(struct game_round *self, int new_round)
-{
-    self->as_int = new_round;
-    if (self->as_int > 99)
-        self->as_int = 1;
-    text_set_printf(self->as_text, "%" PRId32, self->as_int);
-    sfText_setColor(self->as_text, sfColor_fromRGB(128, 208, 16));
-    sfText_setPosition(self->as_text, (sfVector2f){40, 183});
-}
-
-static void game_set_current_score(struct game_scores *self, int new_score)
-{
-    self->current_as_int = new_score;
-    if (self->current_as_int > 999999)
-        self->current_as_int = 0;
-    if (self->current_as_int > self->top_as_int)
-        set_top_score(self->current_as_int);
-    text_set_printf(self->current_as_text, "%06" PRId32, self->current_as_int);
-    sfText_setColor(self->current_as_text, sfColor_fromRGB(252, 252, 252));
-    sfText_setPosition(self->current_as_text, (sfVector2f){192, 199});
-}
-
-static void game_center_text_box_text(sfText *self)
-{
-    sfText_setPosition(self, (sfVector2f){109, 64 -
-        (int)(sfText_getGlobalBounds(self).height / 2)});
-}
-
-static void game_change_music(sfMusic **self, const char *music_name)
-{
-    sfMusic_destroy(*self);
-    *self = sfMusic_createFromFile(music_name);
-    MY_ASSERT(*self != NULL);
-    sfMusic_play(*self);
-}
-
-static void game_update_do_sounds_stop_if_no_ducks_flying(struct game *self)
-{
-    bool should_stop = true;
-
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
-        if (self->state.session.ducks[i].state == DUCK_STATE_FLYING) {
-            should_stop = false;
-            break;
-        }
-    if (should_stop) {
-        sfSound_stop(self->resources.sounds.flying.sf_sound);
-        sfSound_stop(self->resources.sounds.duck.sf_sound);
-    }
-}
-
-static float game_get_duck_speed(struct game_state *self,
-    struct session_duck *duck)
-{
-    float result = 1.5f;
-
-    if (self->current_round.as_int == 2)
-        result *= 1.07f;
-    if (self->current_round.as_int == 3)
-        result *= 1.2f;
-    if (self->current_round.as_int == 4)
-        result *= 1.5f;
-    if (self->current_round.as_int == 5)
-        result *= 1.65f;
-    if (self->current_round.as_int == 6)
-        result *= 2.f;
-    if (self->current_round.as_int == 7)
-        result *= 2.3f;
-    if (self->current_round.as_int == 8)
-        result *= 2.5f;
-    if (self->current_round.as_int == 9)
-        result *= 3.f;
-    if (self->current_round.as_int == 10)
-        result *= 3.5f;
-    if (self->current_round.as_int >= 11)
-        result *= 6.f;
-    if (duck->color == 2)
-        result *= 1.25f;
-    if (duck->color == 1)
-        result *= 1.5f;
-    return result;
-}
 
 static void game_set_mode(struct game *self, enum game_mode mode)
 {
