@@ -24,7 +24,7 @@ BINARY_NAME := my_hunter
 all: $(BINARY_NAME)
 
 # Sources for this project
-SOURCE_FILES := main game game/create random top_score text_utils
+SOURCE_FILES := main game game/create game/create/game_state game/create/nes_text game/create/scores game/create/session_duck game/create/sounds game/create/sprite game/create/sprites game/create/textures game/create/window random top_score text_utils
 
 OBJECT_FILES := $(addprefix obj/, $(addsuffix .o, $(SOURCE_FILES)))
 
@@ -32,7 +32,7 @@ $(BINARY_NAME): libmy $(OBJECT_FILES)
 	$(CC) $(LDFLAGS) -o $@ $(OBJECT_FILES) -lmy -lcsfml-graphics -lcsfml-audio -lcsfml-window -lm
 
 obj/%.o: src/%.c libmy
-	mkdir --parents obj/game
+	mkdir --parents obj/game/create
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 # Just build the entire libmy when we need these headers

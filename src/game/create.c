@@ -6,202 +6,15 @@
 */
 
 #include "create.h"
-#include "../text_utils.h"
-#include "../top_score.h"
-#include <SFML/Audio/Sound.h>
-#include <SFML/Audio/SoundBuffer.h>
+#include "create/internal.h"
 #include <SFML/Graphics/Font.h>
-#include <SFML/Graphics/Sprite.h>
-#include <SFML/Graphics/RenderWindow.h>
-#include <SFML/Graphics/Text.h>
-#include <SFML/Graphics/Texture.h>
-#include <SFML/System/Vector2.h>
-#include "my/macros.h"
-#include <inttypes.h>
-
-static bool make_texture(sfTexture **texture, const char *filename)
-{
-    *texture = sfTexture_createFromFile(filename, NULL);
-    return (*texture != NULL);
-}
-
-static bool make_sprite(sfSprite **sprite, sfTexture *texture, bool reset_rect)
-{
-    *sprite = sfSprite_create();
-    if (*sprite == NULL)
-        return (false);
-    sfSprite_setTexture(*sprite, texture, reset_rect);
-    return (true);
-}
-
-static bool make_sound(struct sound_with_buffer *sound, const char *filename)
-{
-    sound->buffer = sfSoundBuffer_createFromFile(filename);
-    if (sound->buffer == NULL)
-        return (false);
-    sound->sf_sound = sfSound_create();
-    if (sound->sf_sound == NULL)
-        return (false);
-    sfSound_setBuffer(sound->sf_sound, sound->buffer);
-    return (true);
-}
-
-static bool make_nes_text(sfText **text, sfFont *nes_font)
-{
-    static const int NES_CHARACTER_SIZE = 8;
-
-    *text = sfText_create();
-    if (*text == NULL)
-        return (false);
-    sfText_setFont(*text, nes_font);
-    sfText_setCharacterSize(*text, NES_CHARACTER_SIZE);
-    return (true);
-}
-
-static bool make_textures(struct game_textures *self)
-{
-    if (!make_texture(&self->title, "assets/title.png"))
-        return (false);
-    if (!make_texture(&self->cursor, "assets/cursor.png"))
-        return (false);
-    if (!make_texture(&self->background, "assets/backgrounds.png"))
-        return (false);
-    if (!make_texture(&self->ducks, "assets/ducks.png"))
-        return (false);
-    if (!make_texture(&self->dog, "assets/dog.png"))
-        return (false);
-    return (true);
-}
-
-static bool make_sprites_part2(struct game_sprites *self,
-    const struct game_textures *textures)
-{
-    if (!make_sprite(&self->text_box, textures->ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->text_box,
-        (sfIntRect){184, 127, 233 - 184, 160 - 127});
-    sfSprite_setPosition(self->text_box, (sfVector2f){104, 48});
-    if (!make_sprite(&self->dog, textures->dog, false))
-        return (false);
-    sfSprite_setTextureRect(self->dog, (sfIntRect){0, 0, 0, 0});
-    if (!make_sprite(&self->perfect_box, textures->ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->perfect_box,
-        (sfIntRect){239, 127, 312 - 239, 160 - 127});
-    return (true);
-}
-
-static bool make_sprites(struct game_sprites *self,
-    const struct game_textures *textures)
-{
-    if (!make_sprite(&self->title_background, textures->title,
-        false))
-        return (false);
-    if (!make_sprite(&self->title_cursor, textures->cursor, true))
-        return (false);
-    if (!make_sprite(&self->gameplay_background,
-        textures->background, false))
-        return (false);
-    if (!make_sprite(&self->fly_away, textures->ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->fly_away,
-        (sfIntRect){54, 129, 127 - 54, 146 - 129});
-    sfSprite_setPosition(self->fly_away, (sfVector2f){96, 56});
-    return (make_sprites_part2(self, textures));
-}
-
-static bool make_session_duck(struct session_duck *self, struct game *game)
-{
-    if (!make_sprite(&self->sprite,
-        game->resources.textures.ducks, false))
-        return (false);
-    sfSprite_setTextureRect(self->sprite,
-        (sfIntRect){0, 0, 0, 0});
-    self->state = DUCK_STATE_INACTIVE;
-    self->draw_shoot_rectangle = false;
-    self->frames_since_state_change = 0;
-    if (!make_nes_text(&self->score_text,
-        game->resources.nes_font))
-        return (false);
-    sfText_setColor(self->score_text,
-        sfColor_fromRGB(252, 252, 252));
-    sfText_setPosition(self->score_text,
-        (sfVector2f){1000, 1000});
-    return (true);
-}
-
-static bool make_scores(struct game_scores *self, sfFont *nes_font)
-{
-    self->top_as_int = get_top_score();
-    if (!make_nes_text(&self->top_as_text, nes_font))
-        return (false);
-    text_set_printf(self->top_as_text, "%" PRId32, self->top_as_int);
-    sfText_setColor(self->top_as_text, sfColor_fromRGB(76, 220, 72));
-    sfText_setPosition(self->top_as_text, (sfVector2f){191 -
-        sfText_getGlobalBounds(self->top_as_text).width, 183});
-    if (!make_nes_text(&self->current_as_text, nes_font))
-        return (false);
-    return (true);
-}
-
-static bool make_sounds(struct game_sounds *self)
-{
-    struct {
-        struct sound_with_buffer *ptr;
-        const char *filename;
-    } sounds_to_make[] = {{&self->duck, "assets/duck.wav"}, {&self->flying,
-        "assets/flying.wav"}, {&self->gun_shoot, "assets/gun_shoot.wav"},
-        {&self->duck_falling, "assets/duck_falling.wav"}, {&self->duck_thud,
-        "assets/duck_thud.wav"}, {&self->gottem, "assets/gottem.wav"},
-        {&self->dog_mocking, "assets/dog_mocking.wav"},
-        {&self->round_ducks_move, "assets/round_ducks_move.wav"},
-        {&self->end_round_success, "assets/end_round_success.wav"},
-        {&self->game_over, "assets/game_over.wav"}, {&self->game_over_dog,
-        "assets/game_over_dog.wav"}, {&self->perfect, "assets/perfect.wav"}};
-
-    for (size_t i = 0; i < MY_ARRAY_SIZE(sounds_to_make); ++i)
-        if (!make_sound(sounds_to_make[i].ptr, sounds_to_make[i].filename))
-            return (false);
-    sfSound_setLoop(self->duck.sf_sound, true);
-    sfSound_setLoop(self->flying.sf_sound, true);
-    return (true);
-}
-
-static bool make_game_state_stuff(struct game_state *self, struct game *game)
-{
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->round.ducks); ++i)
-        if (!make_sprite(&self->round.ducks[i].sprite,
-            game->resources.textures.background, false))
-            return (false);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->session.ducks); ++i)
-        if (!make_session_duck(&self->session.ducks[i], game))
-            return (false);
-    self->session.clear_screen_for_shoot = false;
-    if (!make_scores(&self->scores, game->resources.nes_font))
-        return (false);
-    if (!make_nes_text(&self->text_box.text,
-        game->resources.nes_font))
-        return (false);
-    if (!make_nes_text(&self->current_round.as_text,
-        game->resources.nes_font))
-        return (false);
-    self->current_music = NULL;
-    self->mode = GAME_MODE_NONE;
-    return (true);
-}
 
 // We can't disable font anti-aliasing. Oh well, I guess the game will only be
 // pretty on NES resolution, then ¯\_(ツ)_/¯
-bool game_create(struct game *self)
+bool game_create(struct game *self, bool is_original_resolution)
 {
-    self->window = sfRenderWindow_create(
-        (sfVideoMode){256, 224, sfVideoMode_getDesktopMode().bitsPerPixel},
-        "Duck Hunt but it's done with CSFML", sfDefaultStyle, NULL);
-    if (self->window == NULL)
+    if (!make_window(&self->window, is_original_resolution))
         return (false);
-    sfRenderWindow_setSize(self->window, (sfVector2u){256 * 4, 224 * 4});
-    sfRenderWindow_setFramerateLimit(self->window, 60);
-    sfRenderWindow_setVerticalSyncEnabled(self->window, true);
     self->resources.nes_font = sfFont_createFromFile("assets/nes_font.ttf");
     if (self->resources.nes_font == NULL)
         return (false);
@@ -211,7 +24,7 @@ bool game_create(struct game *self)
         return (false);
     if (!make_sounds(&self->resources.sounds))
         return (false);
-    if (!make_game_state_stuff(&self->state, self))
+    if (!make_game_state(&self->state, self))
         return (false);
     return (true);
 }

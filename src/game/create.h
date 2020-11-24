@@ -9,4 +9,4 @@
 
 #include "game.h"
 
-bool game_create(struct game *self);
+bool game_create(struct game *self, bool is_original_resolution);

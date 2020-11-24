@@ -15,7 +15,9 @@
 
 static int usage(const char *program_name)
 {
-    my_printf("Usage: %s\n"
+    my_printf("Usage: %s\n\n"
+              "    --original-resolution starts the game in 256*224, the"
+              "original resolution of the NES\n\n"
               "Implements a small Duck Hunt game\n"
               "Most of the controls are done through mouse and the arrow keys\n"
               , program_name);
@@ -29,7 +31,8 @@ int main(int argc, char **argv)
     srand(time(NULL));
     if (argc >= 2 && (my_strcmp(argv[1], "-h") == 0))
         return usage(argv[0]);
-    if (!game_create(&game)) {
+    if (!game_create(&game, argc >= 2 && (my_strcmp(argv[1],
+        "--original-resolution") == 0))) {
         my_dputs("Failed to initialize game\n", STDERR_FILENO);
         return 84;
     }
