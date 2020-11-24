@@ -13,6 +13,7 @@
 #include "center_text_box_text.h"
 #include "update/do.h"
 #include "get_duck_speed.h"
+#include "handle/key.h"
 #include "../random.h"
 #include "../top_score.h"
 #include "../text_utils.h"
@@ -38,17 +39,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static void game_handle_key(struct game *self, sfKeyCode key_code)
-{
-    if (self->state.mode == GAME_MODE_TITLE) {
-        if (key_code == sfKeyV)
-            if (++self->state.title.selected_game > 1)
-                self->state.title.selected_game = 0;
-        if (key_code == sfKeyC)
-            game_set_mode(self, GAME_MODE_START_ROUND);
-    }
-}
 
 static void game_advance_dog(sfSprite *self)
 {
