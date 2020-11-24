@@ -5,8 +5,8 @@
 ** Implements game_create
 */
 
-#include "create.h"
-#include "create/internal.h"
+#include "../create.h"
+#include "internal.h"
 #include <SFML/Graphics/Font.h>
 
 // We can't disable font anti-aliasing. Oh well, I guess the game will only be
