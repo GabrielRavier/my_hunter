@@ -17,7 +17,8 @@ static int usage(const char *program_name)
 {
     my_printf("Usage: %s\n\n"
               "    --original-resolution starts the game in 256*224, the"
-              "original resolution of the NES\n\n"
+              " original resolution of the NES\n"
+              "    -h                    displays this message and exits\n\n"
               "Implements a small Duck Hunt game\n"
               "Most of the controls are done through mouse and the arrow keys\n"
               , program_name);
