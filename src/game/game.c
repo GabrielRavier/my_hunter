@@ -14,6 +14,8 @@
 #include "update/do.h"
 #include "get_duck_speed.h"
 #include "handle/key.h"
+#include "session_duck/set.h"
+#include "session_duck/update.h"
 #include "../random.h"
 #include "../top_score.h"
 #include "../text_utils.h"
@@ -30,6 +32,7 @@
 #include <SFML/Audio/Music.h>
 #include <SFML/Audio/Sound.h>
 #include <SFML/Audio/SoundBuffer.h>
+#include <SFML/System/Clock.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -55,7 +58,8 @@ static void game_advance_dog(sfSprite *self)
     sfSprite_setTextureRect(self, dog_rect);
 }
 
-static void do_flying_dog_movement(struct game *self)
+static void do_flying_dog_movement(sfSprite *self,
+    uintmax_t frames_since_mode_begin)
 {
     static const int table_x[42] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -63,175 +67,11 @@ static void do_flying_dog_movement(struct game *self)
     static const int table_y[51] = {3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, -1, 0, -1, -1, -2,
         -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3};
-    int index = self->state.frames_since_mode_begin - 368;
+    int index = frames_since_mode_begin - 368;
 
-    sfSprite_setPosition(self->resources.sprites.dog, (sfVector2f){
-        sfSprite_getPosition(self->resources.sprites.dog).x +
-            (index < 42 ? table_x[index] : 0),
-        sfSprite_getPosition(self->resources.sprites.dog).y -
-            (index < 51 ? table_y[index] : 0)});
-}
-
-static void session_duck_set_state(struct session_duck *self, struct game *game,
-    enum duck_state state)
-{
-    self->state = state;
-    self->frames_since_state_change = 0;
-    if (self->state == DUCK_STATE_FALLING)
-        game->state.round.ducks[(self - game->state.session.ducks) +
-            game->state.round.current_ducks_index].state =
-                ROUND_DUCK_STATE_DEAD;
-    if (self->state == DUCK_STATE_DEAD) {
-        sfText_setPosition(self->score_text, (sfVector2f){1000, 1000});
-        sfSound_play(game->resources.sounds.duck_thud.sf_sound);
-        sfSound_stop(game->resources.sounds.duck_falling.sf_sound);
-        game->state.session.last_duck_fall_x_position =
-            sfSprite_getPosition(self->sprite).x;
-    }
-    if (self->state == DUCK_STATE_INACTIVE)
-        game->state.round.ducks[(self - game->state.session.ducks) +
-            game->state.round.current_ducks_index].state = ROUND_DUCK_STATE_LIVES;
-}
-
-static void session_duck_set_text_position(struct session_duck *self)
-{
-    sfFloatRect text_bounds = sfText_getGlobalBounds(self->score_text);
-    sfFloatRect duck_bounds = sfSprite_getGlobalBounds(self->sprite);
-
-    sfText_setPosition(self->score_text, (sfVector2f){
-        (int)(duck_bounds.left +
-             ((duck_bounds.width - text_bounds.width) / 2)),
-        (int)(duck_bounds.top +
-             ((duck_bounds.height - text_bounds.height) / 2))});
-}
-
-static void session_duck_update(struct session_duck *self, struct game *game)
-{
-    int which_sprite = ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >=
-        3) + ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
-    static const sfIntRect rects[3][8] = {
-        {
-            {4, 2, 35 - 4, 33 - 2},
-            {41, 2, 71 - 41, 33 - 2},
-            {72, 2, 98 - 72, 35 - 2},
-            {109, 8, 143 - 109, 37 - 8},
-            {147, 8, 181 - 147, 38 - 8},
-            {184, 8, 218 - 184, 40 - 8},
-            {226, 12, 257 - 226, 41 - 12},
-            {267, 10, 285 - 267, 41 - 10},
-        },
-        {
-            {8, 45, 35 - 8, 76 - 45},
-            {39, 45, 71 - 39, 76 - 45},
-            {73, 45, 98 - 73, 78 - 45},
-            {107, 48, 141 - 107, 77 - 48},
-            {145, 48, 179 - 145, 78 - 48},
-            {182, 48, 216 - 182, 80 - 48},
-            {224, 52, 255 - 224, 81 - 52},
-            {264, 51, 282 - 264, 82 - 51},
-        },
-        {
-            {6, 88, 33 - 6, 119 - 88},
-            {37, 88, 69 - 37, 119 - 88},
-            {71, 88, 96 - 71, 121 - 88},
-            {105, 91, 139 - 105, 120 - 91},
-            {143, 91, 177 - 143, 121 - 91},
-            {180, 91, 214 - 180, 123 - 91},
-            {222, 95, 253 - 222, 124 - 95},
-            {263, 93, 281 - 263, 124 - 93},
-        }
-    };
-    sfIntRect final_rect;
-    sfVector2f current_position = sfSprite_getPosition(self->sprite);
-    sfFloatRect self_bounds;
-
-    ++self->frames_since_state_change;
-    if (self->state == DUCK_STATE_FLYING) {
-        if (game->state.session.shots_left == 0)
-            self->angle = -M_PI / 2;
-        sfSprite_setPosition(self->sprite, (sfVector2f){
-            current_position.x + (self->speed * cosf(self->angle)),
-            current_position.y + (self->speed * sinf(self->angle))});
-        if (fabsf(sinf(self->angle)) < fabsf(cosf(self->angle)))
-            final_rect = rects[self->color][which_sprite + 3];
-        else
-            final_rect = rects[self->color][which_sprite];
-        if (cosf(self->angle) < 0)
-            final_rect = (sfIntRect){final_rect.left + final_rect.width,
-                final_rect.top, -final_rect.width, final_rect.height};
-        sfSprite_setTextureRect(self->sprite, final_rect);
-        self_bounds = sfSprite_getGlobalBounds(self->sprite);
-        if (game->state.session.shots_left == 0 ||
-            game->state.mode == GAME_MODE_SESSION_FLY_AWAY) {
-            if (((self_bounds.left + self_bounds.width) < 0) ||
-               (self_bounds.left > 256) ||
-               ((self_bounds.top + self_bounds.height) < 0))
-            session_duck_set_state(self, game, DUCK_STATE_INACTIVE);
-        } else {
-            if (self_bounds.left < 0) {
-                if (cosf(self->angle) < 0) {
-                    self->angle = self->angle + M_PI +
-                        random_float_between(-0.25f, 0.25f);
-                    if (random_int_between(0, 5) != 0)
-                        self->angle = -self->angle;
-                    session_duck_update(self, game);
-                }
-            }
-            if ((self_bounds.left + self_bounds.width) > 256) {
-                if (cosf(self->angle) > 0) {
-                    self->angle = self->angle + M_PI +
-                        random_float_between(-0.25f, 0.25f);
-                    if (random_int_between(0, 5) != 0)
-                        self->angle = -self->angle;
-                    session_duck_update(self, game);
-                }
-            }
-            if (self_bounds.top < 0) {
-                if (sinf(self->angle) < 0) {
-                    self->angle = -self->angle +
-                        random_float_between(-0.25f, 0.25f);
-                    session_duck_update(self, game);
-                }
-            }
-        }
-        if ((self_bounds.top + self_bounds.height) > 160) {
-            if (sinf(self->angle) > 0) {
-                self->angle = -self->angle +
-                        random_float_between(-0.25f, 0.25f);
-                session_duck_update(self, game);
-            }
-        }
-    }
-    if (self->state == DUCK_STATE_FALLING) {
-        if (self->frames_since_state_change < 22) {
-            final_rect = rects[self->color][6];
-            if (cosf(self->angle) < 0)
-                final_rect = (sfIntRect){final_rect.left + final_rect.width,
-                    final_rect.top, -final_rect.width, final_rect.height};
-            sfSprite_setTextureRect(self->sprite,
-                final_rect);
-        } else if (self->frames_since_state_change == 22) {
-            sfSound_play(game->resources.sounds.duck_falling.sf_sound);
-            session_duck_set_text_position(self);
-        } else {
-            if (self->frames_since_state_change > (22 + 45))
-                sfText_setPosition(self->score_text, (sfVector2f){1000, 1000});
-            if ((self->frames_since_state_change % 2) == 0)
-                ++current_position.x;
-            else
-                --current_position.x;
-            current_position.y += 2;
-            sfSprite_setPosition(self->sprite, current_position);
-            if (current_position.y > 184 - (119 - 89))
-                session_duck_set_state(self, game, DUCK_STATE_DEAD);
-            final_rect = rects[self->color][7];
-            if ((self->frames_since_state_change % 10) < 5)
-                final_rect = (sfIntRect){final_rect.left + final_rect.width,
-                    final_rect.top, -final_rect.width, final_rect.height};
-            sfSprite_setTextureRect(self->sprite,
-                final_rect);
-        }
-    }
+    sfSprite_setPosition(self, (sfVector2f){sfSprite_getPosition(self).x +
+        (index < 42 ? table_x[index] : 0), sfSprite_getPosition(self).y -
+        (index < 51 ? table_y[index] : 0)});
 }
 
 static void round_duck_update(struct round_duck *self,
@@ -438,7 +278,8 @@ static void game_update(struct game *self)
             if (self->state.frames_since_mode_begin == (368 + 18))
                 sfSprite_setTextureRect(self->resources.sprites.dog,
                     (sfIntRect){40, 185, 37, 169 - 121});
-            do_flying_dog_movement(self);
+            do_flying_dog_movement(self->resources.sprites.dog,
+                self->state.frames_since_mode_begin);
         }
         else if (self->state.frames_since_mode_begin == 368) {
             sfSprite_setTextureRect(self->resources.sprites.dog,
@@ -698,7 +539,11 @@ static void game_handle_mouse_press(struct game *self,
 void game_main_loop(struct game *self)
 {
     sfEvent event;
+    sfClock *clock = sfClock_create();
+    int64_t elapsed_time = 0;
+    static const int64_t one_frame_in_microseconds = 17000;
 
+    MY_ASSERT(clock != NULL);
     game_set_mode(self, GAME_MODE_TITLE);
     while (sfRenderWindow_isOpen(self->window)) {
         while (sfRenderWindow_pollEvent(self->window, &event)) {
@@ -709,11 +554,22 @@ void game_main_loop(struct game *self)
             if (event.type == sfEvtKeyPressed)
                 game_handle_key(self, event.key.code);
         }
+        elapsed_time += sfClock_getElapsedTime(clock).microseconds;
+        sfClock_restart(clock);
         game_update(self);
         game_draw(self);
+        elapsed_time -= one_frame_in_microseconds;
+        while (elapsed_time > 0) {
+            my_dputs("Dropped a frame, skipping a frame...\n", STDERR_FILENO);
+            ++self->state.frames_since_mode_begin;
+            game_update(self);
+            game_draw(self);
+            elapsed_time -= one_frame_in_microseconds;
+        }
         sfRenderWindow_display(self->window);
         ++self->state.frames_since_mode_begin;
     }
+    sfClock_destroy(clock);
 }
 
 static void destroy_sound_with_buffer(const struct sound_with_buffer *self)
