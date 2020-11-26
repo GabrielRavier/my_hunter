@@ -5,7 +5,7 @@
 ** Implements game
 */
 
-#include "../game.h"
+#include "main_loop.h"
 #include "update.h"
 #include "draw.h"
 #include "handle/key.h"
