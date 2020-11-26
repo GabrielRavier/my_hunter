@@ -8,10 +8,10 @@
 #include "internal.h"
 #include <SFML/Graphics/Text.h>
 
+static const int NES_CHARACTER_SIZE = 8;
+
 bool make_nes_text(sfText **text, sfFont *nes_font)
 {
-    static const int NES_CHARACTER_SIZE = 8;
-
     *text = sfText_create();
     if (*text == NULL)
         return (false);

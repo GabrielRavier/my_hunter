@@ -6,8 +6,17 @@
 */
 
 #include "dog.h"
+#include "my/macros.h"
 #include <SFML/Graphics/Sprite.h>
 #include <SFML/System/Vector2.h>
+#include <stddef.h>
+
+const int WALKING_DOG_TOP = 13;
+const int WALKING_DOG_WIDTH = 56;
+const int WALKING_DOG_PRE_FIRST_LEFT = -1;
+const sfIntRect WALKING_DOG_PRE_FIRST_RECT = {WALKING_DOG_PRE_FIRST_LEFT,
+    WALKING_DOG_TOP, WALKING_DOG_WIDTH, 56 - 13};
+const uintmax_t FRAME_START_FLYING = 368;
 
 void dog_update_walking(sfSprite *self)
 {
@@ -15,10 +24,10 @@ void dog_update_walking(sfSprite *self)
     sfIntRect dog_rect = sfSprite_getTextureRect(self);
 
     dog_position.x += 2;
-    if (dog_rect.top != 13)
-        dog_rect = (sfIntRect){-1, 13, 56, 56 - 13};
-    dog_rect.left += 56;
-    if (dog_rect.left == ((56 * 4) - 1))
+    if (dog_rect.top != WALKING_DOG_TOP)
+        dog_rect = WALKING_DOG_PRE_FIRST_RECT;
+    dog_rect.left += WALKING_DOG_WIDTH;
+    if (dog_rect.left == ((WALKING_DOG_WIDTH * 4) + WALKING_DOG_PRE_FIRST_LEFT))
         dog_rect.left = -1;
     sfSprite_setPosition(self, dog_position);
     sfSprite_setTextureRect(self, dog_rect);
@@ -33,9 +42,10 @@ void dog_update_flying(sfSprite *self,
     static const int table_y[51] = {3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, -1, 0, -1, -1, -2,
         -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3};
-    int index = frames_since_mode_begin - 368;
+    uintmax_t index = frames_since_mode_begin - FRAME_START_FLYING;
 
     sfSprite_setPosition(self, (sfVector2f){sfSprite_getPosition(self).x +
-        (index < 42 ? table_x[index] : 0), sfSprite_getPosition(self).y -
-        (index < 51 ? table_y[index] : 0)});
+            (index < MY_ARRAY_SIZE(table_x) ? table_x[index] : 0),
+        sfSprite_getPosition(self).y -
+            (index < MY_ARRAY_SIZE(table_y) ? table_y[index] : 0)});
 }

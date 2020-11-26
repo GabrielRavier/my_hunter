@@ -14,15 +14,25 @@
 #include <SFML/Graphics/Sprite.h>
 #include <math.h>
 
+static const int MAX_INITIAL_DUCK_X_POSITION = 256 - (33 - 6);
+static const int INITIAL_DUCK_Y_POSITION = 184 - (119 - 89);
+static const int INITIAL_AIMED_Y_POSITION = 120;
+static const int MIN_INITIAL_AIMED_X_POSITION = 25;
+static const int MAX_INITIAL_AIMED_X_POSITION = 230;
+
 static void init_session_duck(struct session_duck *self, struct game *game)
 {
     if (self->state != DUCK_STATE_INACTIVE) {
         sfSprite_setPosition(self->sprite, (sfVector2f){
-            random_int_between(0, 256 - (33 - 6)), 184  - (119 - 89)});
+            random_int_between(0, MAX_INITIAL_DUCK_X_POSITION),
+            INITIAL_DUCK_Y_POSITION});
         self->color = random_int_between(0, 2);
         self->speed = game_get_duck_speed(&game->state, self);
-        self->angle = atan2f(120 - sfSprite_getPosition(self->sprite).y,
-            random_int_between(25, 230) - sfSprite_getPosition(self->sprite).x);
+        self->angle = atan2f(INITIAL_AIMED_Y_POSITION -
+            sfSprite_getPosition(self->sprite).y,
+            random_int_between(MIN_INITIAL_AIMED_X_POSITION,
+                MAX_INITIAL_AIMED_X_POSITION) -
+                   sfSprite_getPosition(self->sprite).x);
     }
 }
 

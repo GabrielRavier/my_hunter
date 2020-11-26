@@ -11,7 +11,7 @@
 
 void session_duck_update(struct session_duck *self, struct game *game)
 {
-    sfVector2f current_position = sfSprite_getPosition(self->sprite);
+    const sfVector2f current_position = sfSprite_getPosition(self->sprite);
 
     ++self->frames_since_state_change;
     if (self->state == DUCK_STATE_FLYING)

@@ -15,10 +15,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+static const int PERMISSIONS_ALL_READ_WRITE = 0666;
+static const int32_t DEFAULT_SCORE = 12000;
+static const size_t MOST_CHARS_SCORE = 6;
+
 void set_top_score(int32_t top_score)
 {
-    static const int all_rw = 0666;
-    int fd = open("top_score.txt", O_WRONLY | O_CREAT | O_TRUNC, all_rw);
+    int fd = open("top_score.txt", O_WRONLY | O_CREAT | O_TRUNC,
+        PERMISSIONS_ALL_READ_WRITE);
 
     if (fd < 0) {
         my_dputs("Failed to open top_score.txt\n", STDERR_FILENO);
@@ -31,13 +35,13 @@ void set_top_score(int32_t top_score)
 int32_t get_top_score(void)
 {
     FILE *score_file = fopen("top_score.txt", "r");
-    char buffer[7];
+    char buffer[MOST_CHARS_SCORE + 1];
     int bytes_read;
     int result;
 
     if (!score_file)
-        return 12000;
-    bytes_read = fread(buffer, 1, 6, score_file);
+        return DEFAULT_SCORE;
+    bytes_read = fread(buffer, 1, MOST_CHARS_SCORE, score_file);
     buffer[bytes_read] = '\0';
     result = my_strtol_base_str(buffer, NULL, "0123456789");
     fclose(score_file);

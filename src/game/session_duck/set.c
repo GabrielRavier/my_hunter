@@ -10,6 +10,8 @@
 #include <SFML/Graphics/Sprite.h>
 #include <SFML/Graphics/Text.h>
 
+static const sfVector2f POSITION_OUT_OF_SCREEN = {1000, 1000};
+
 void session_duck_set_state(struct session_duck *self, struct game *game,
     enum duck_state state)
 {
@@ -20,7 +22,7 @@ void session_duck_set_state(struct session_duck *self, struct game *game,
             game->state.round.current_ducks_index].state =
                 ROUND_DUCK_STATE_DEAD;
     if (self->state == DUCK_STATE_DEAD) {
-        sfText_setPosition(self->score_text, (sfVector2f){1000, 1000});
+        sfText_setPosition(self->score_text, POSITION_OUT_OF_SCREEN);
         sfSound_play(game->resources.sounds.duck_thud.sf_sound);
         sfSound_stop(game->resources.sounds.duck_falling.sf_sound);
         game->state.session.last_duck_fall_x_position =
@@ -33,8 +35,8 @@ void session_duck_set_state(struct session_duck *self, struct game *game,
 
 void session_duck_set_text_position(struct session_duck *self)
 {
-    sfFloatRect text_bounds = sfText_getGlobalBounds(self->score_text);
-    sfFloatRect duck_bounds = sfSprite_getGlobalBounds(self->sprite);
+    const sfFloatRect text_bounds = sfText_getGlobalBounds(self->score_text);
+    const sfFloatRect duck_bounds = sfSprite_getGlobalBounds(self->sprite);
 
     sfText_setPosition(self->score_text, (sfVector2f){
         (int)(duck_bounds.left +

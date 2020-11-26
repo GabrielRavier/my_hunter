@@ -40,25 +40,36 @@ static const sfIntRect rects_flying[3][6] = {
     }
 };
 
+static const int NES_SCREEN_WIDTH = 256;
+
+static const int DUCK_HIGHEST_Y = 160;
+
+static float get_random_angle_deviation(void)
+{
+    static const float DEVIATION = 0.25f;
+
+    return random_float_between(-DEVIATION, DEVIATION);
+}
+
 // Does collision when normally flying (i.e. not in fly away mode or when the
 // player has no ammunition)
 static void do_normal_flying_collision(struct session_duck *self,
     struct game *game, sfFloatRect self_bounds)
 {
     if (self_bounds.left < 0 && cosf(self->angle) < 0) {
-        self->angle = self->angle + M_PI + random_float_between(-0.25f, 0.25f);
+        self->angle = self->angle + M_PI + get_random_angle_deviation();
         if (random_int_between(0, 5) != 0)
             self->angle = -self->angle;
         session_duck_update(self, game);
     }
     if ((self_bounds.left + self_bounds.width) > 256 && cosf(self->angle) > 0) {
-        self->angle = self->angle + M_PI + random_float_between(-0.25f, 0.25f);
+        self->angle = self->angle + M_PI + get_random_angle_deviation();
         if (random_int_between(0, 5) != 0)
             self->angle = -self->angle;
         session_duck_update(self, game);
     }
     if (self_bounds.top < 0 && sinf(self->angle) < 0) {
-        self->angle = -self->angle + random_float_between(-0.25f, 0.25f);
+        self->angle = -self->angle + get_random_angle_deviation();
         session_duck_update(self, game);
     }
 }
@@ -70,13 +81,14 @@ static void do_collision(struct session_duck *self, struct game *game)
     if (game->state.session.shots_left == 0 ||
         game->state.mode == GAME_MODE_SESSION_FLY_AWAY) {
         if (((self_bounds.left + self_bounds.width) < 0) ||
-            (self_bounds.left > 256) ||
+            (self_bounds.left > NES_SCREEN_WIDTH) ||
             ((self_bounds.top + self_bounds.height) < 0))
             session_duck_set_state(self, game, DUCK_STATE_INACTIVE);
     } else
         do_normal_flying_collision(self, game, self_bounds);
-    if ((self_bounds.top + self_bounds.height) > 160 && sinf(self->angle > 0)) {
-        self->angle = -self->angle + random_float_between(-0.25f, 0.25f);
+    if ((self_bounds.top + self_bounds.height) > DUCK_HIGHEST_Y &&
+        sinf(self->angle > 0)) {
+        self->angle = -self->angle + get_random_angle_deviation();
         session_duck_update(self, game);
     }
 }
@@ -84,8 +96,9 @@ static void do_collision(struct session_duck *self, struct game *game)
 void session_duck_update_flying(struct session_duck *self,
     struct game *game, sfVector2f current_position)
 {
-    int which_sprite = ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >=
-        3) + ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
+    const int which_sprite = ((game->state.frames_since_mode_begin % (3 + 3 +
+        5)) >= 3) + ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >=
+        (3 + 3));
     sfIntRect final_rect;
     
     if (game->state.session.shots_left == 0)

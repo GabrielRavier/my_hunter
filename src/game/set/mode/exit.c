@@ -12,12 +12,14 @@
 #include <SFML/Graphics/Sprite.h>
 #include <SFML/Audio/Sound.h>
 
+static const sfIntRect GAMEPLAY_BACKGROUND_RECT = {0, 8, 255, 224};
+
 static void game_exit_title(struct game *self)
 {
     game_set_current_round(&self->state.current_round, 0);
     game_set_current_score(&self->state.scores, 0);
     sfSprite_setTextureRect(self->resources.sprites.gameplay_background,
-        (sfIntRect){0, 8, 255, 224});
+        GAMEPLAY_BACKGROUND_RECT);
 }
 
 static void game_exit_session(struct game_sounds *sounds)

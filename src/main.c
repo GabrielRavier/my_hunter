@@ -13,6 +13,8 @@
 #include <time.h>
 #include <unistd.h>
 
+static const int ERROR_RETURN_VALUE = 84;
+
 static int usage(const char *program_name)
 {
     my_printf("Usage: %s\n\n"
@@ -37,7 +39,7 @@ int main(int argc, char **argv)
     if (!game_create(&game, argc >= 2 && (my_strcmp(argv[1],
         "--original-resolution") == 0))) {
         my_dputs("Failed to initialize game\n", STDERR_FILENO);
-        return (84);
+        return (ERROR_RETURN_VALUE);
     }
     game_main_loop(&game);
     game_destroy(&game);

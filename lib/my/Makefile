@@ -19,7 +19,7 @@ override CFLAGS += -D_GNU_SOURCE
 
 .PREVIOUS: obj/%.o
 
-HEADER_FILES := my my/assert my/bigint my/checked_multiply my/config my/ctype my/macros my/math my/misc my/my_string my/stdio my/stdlib my/string
+HEADER_FILES := my my/assert my/bigint my/checked_multiply my/config my/ctype my/macros my/math my/misc my/my_string my/stdio my/stdlib my/string my/strings
 HEADER_FILES := $(addprefix ../../include/, $(addsuffix .h, $(HEADER_FILES)))
 
 all: ../libmy.a $(HEADER_FILES)
@@ -41,7 +41,15 @@ SOURCE_FILES += stdio/putchar stdio/dputc stdio/dputs stdio/puts stdio/printf/pr
 SOURCE_FILES += stdlib/qsort stdlib/qsort_r stdlib/realloc_size stdlib/strtol_base_str stdlib/strtol_base_str_part2
 
 # Stuff related to string.h
-SOURCE_FILES += string/strlen string/strcpy string/strncpy string/strstr string/strcmp string/strncmp string/strcat string/strncat string/strchr string/strspn string/strcspn string/strnlen string/strdup string/strndup string/memcpy string/memmove string/memchr string/memset
+SOURCE_FILES += string/strlen string/strcpy string/strncpy string/strstr string/strcmp string/strncmp string/strcat string/strncat string/strchr string/strspn string/strcspn string/strnlen string/strdup string/strndup string/memchr string/memset
+ifeq ($(shell uname -p), x86_64)
+	SOURCE_FILES += string/memcpy_x86_64 string/memmove_x86_64
+else
+	SOURCE_FILES += string/memcpy string/memmove
+endif
+
+# Stuff related to strings.h
+SOURCE_FILES += strings/strcasecmp
 
 # Stuff related to my_bigint
 SOURCE_FILES += bigint/new_from_int bigint/strtol_base_str bigint/assign bigint/add bigint/add_unsigned bigint/compare bigint/compare_unsigned bigint/sub bigint/sub_unsigned bigint/mul bigint/div bigint/mod bigint/div_mod bigint/neg bigint/to_int bigint/to_string_base bigint/free
@@ -75,6 +83,10 @@ tests_binary: $(TESTS_OBJECT_FILES) ../libmy.a
 	@mkdir --parents ../../include/my/internal
 	cp $< $@
 
+obj/%.o: %.s
+	@mkdir --parents obj/src/string
+	$(CC) -c $< -o $@ $(CFLAGS)
+
 obj/%.o: %.c
 	@mkdir --parents obj/src/assert
 	@mkdir --parents obj/src/bigint
@@ -87,6 +99,7 @@ obj/%.o: %.c
 	@mkdir --parents obj/src/stdio/printf/parse_conversion_info
 	@mkdir --parents obj/src/stdlib
 	@mkdir --parents obj/src/string
+	@mkdir --parents obj/src/strings
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 obj/tests/%.o: ../../tests/libmy/%.c
