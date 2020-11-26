@@ -24,6 +24,7 @@
 #include "../text_utils.h"
 #include "dog.h"
 #include "round_duck/update.h"
+#include "draw/shoot_frame.h"
 #include "my/stdio.h"
 #include "my/stdlib.h"
 #include "my/assert.h"
@@ -47,30 +48,6 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <sys/types.h>
-
-static void game_draw_shoot_frame(struct game *self)
-{
-    sfRectangleShape *duck_white_rectangle = sfRectangleShape_create();
-    sfFloatRect duck_bounds;
-
-    MY_ASSERT(duck_white_rectangle);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i) {
-        if (self->state.session.ducks[i].draw_shoot_rectangle) {
-            self->state.session.ducks[i].draw_shoot_rectangle = false;
-            duck_bounds = sfSprite_getGlobalBounds(
-                self->state.session.ducks[i].sprite);
-            sfRenderWindow_clear(self->window, sfBlack);
-            sfRectangleShape_setFillColor(duck_white_rectangle, sfWhite);
-            sfRectangleShape_setPosition(duck_white_rectangle,
-                (sfVector2f){duck_bounds.left, duck_bounds.top});
-            sfRectangleShape_setSize(duck_white_rectangle,
-                (sfVector2f){duck_bounds.width, duck_bounds.height});
-            sfRenderWindow_drawRectangleShape(self->window,
-                duck_white_rectangle, NULL);
-        }
-    }
-    sfRectangleShape_destroy(duck_white_rectangle);
-}
 
 static void game_draw_background_color(struct game *self)
 {
