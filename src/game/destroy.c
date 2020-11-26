@@ -2,90 +2,19 @@
 ** EPITECH PROJECT, 2020
 ** myhunter
 ** File description:
-** Implements game
+** Implements game_destroy
 */
 
-#include "../game.h"
-#include "change_music.h"
-#include "set/current/round.h"
-#include "set/current/score.h"
-#include "set/mode.h"
-#include "center_text_box_text.h"
-#include "update.h"
-#include "update/do.h"
-#include "update/end_session.h"
-#include "update/end_round.h"
-#include "get_duck_speed.h"
-#include "handle/key.h"
-#include "session_duck/set.h"
-#include "session_duck/update.h"
-#include "../random.h"
-#include "../top_score.h"
-#include "../text_utils.h"
-#include "dog.h"
-#include "round_duck/update.h"
-#include "draw.h"
-#include "session_duck/do_score.h"
-#include "handle/mouse_press.h"
-#include "my/stdio.h"
-#include "my/stdlib.h"
-#include "my/assert.h"
+#include "destroy.h"
 #include "my/macros.h"
-#include <SFML/Graphics/Font.h>
-#include <SFML/Graphics/Sprite.h>
-#include <SFML/Graphics/RectangleShape.h>
-#include <SFML/Graphics/RenderWindow.h>
-#include <SFML/Graphics/Texture.h>
-#include <SFML/Graphics/Text.h>
 #include <SFML/Audio/Music.h>
 #include <SFML/Audio/Sound.h>
 #include <SFML/Audio/SoundBuffer.h>
-#include <SFML/System/Clock.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-#include <inttypes.h>
-#include <sys/types.h>
-
-void game_main_loop(struct game *self)
-{
-    sfEvent event;
-    sfClock *clock = sfClock_create();
-    int64_t elapsed_time = 0;
-    static const int64_t one_frame_in_microseconds = 17000;
-
-    MY_ASSERT(clock != NULL);
-    game_set_mode(self, GAME_MODE_TITLE);
-    while (sfRenderWindow_isOpen(self->window)) {
-        while (sfRenderWindow_pollEvent(self->window, &event)) {
-            if (event.type == sfEvtClosed)
-                sfRenderWindow_close(self->window);
-            if (event.type == sfEvtMouseButtonPressed)
-                game_handle_mouse_press(self, &event.mouseButton);
-            if (event.type == sfEvtKeyPressed)
-                game_handle_key(self, event.key.code);
-        }
-        elapsed_time += sfClock_getElapsedTime(clock).microseconds;
-        sfClock_restart(clock);
-        game_update(self);
-        game_draw(self);
-        elapsed_time -= one_frame_in_microseconds;
-        while (elapsed_time > 0) {
-            my_dputs("Dropped a frame, skipping a frame...\n", STDERR_FILENO);
-            ++self->state.frames_since_mode_begin;
-            game_update(self);
-            game_draw(self);
-            elapsed_time -= one_frame_in_microseconds;
-        }
-        sfRenderWindow_display(self->window);
-        ++self->state.frames_since_mode_begin;
-    }
-    sfClock_destroy(clock);
-}
+#include <SFML/Graphics/Font.h>
+#include <SFML/Graphics/RenderWindow.h>
+#include <SFML/Graphics/Sprite.h>
+#include <SFML/Graphics/Text.h>
+#include <SFML/Graphics/Texture.h>
 
 static void destroy_sound_with_buffer(const struct sound_with_buffer *self)
 {

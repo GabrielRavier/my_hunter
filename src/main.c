@@ -5,8 +5,10 @@
 ** Implements main
 */
 
-#include "game/create.h"
 #include "game.h"
+#include "game/create.h"
+#include "game/destroy.h"
+#include "game/main_loop.h"
 #include "my/stdio.h"
 #include "my/string.h"
 #include <stdlib.h>

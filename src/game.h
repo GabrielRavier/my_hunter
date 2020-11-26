@@ -17,6 +17,3 @@ struct game {
     struct game_resources resources;
     struct game_state state;
 };
-
-void game_main_loop(struct game *self);
-void game_destroy(struct game *self);
