@@ -10,5 +10,4 @@
 #include "state.h"
 #include "session_duck.h"
 
-float game_get_duck_speed(struct game_state *self,
-    struct session_duck *duck);
+float game_get_duck_speed(struct game_state *self, struct session_duck *duck);

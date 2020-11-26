@@ -34,13 +34,11 @@ static bool make_sprites_part2(struct game_sprites *self,
 bool make_sprites(struct game_sprites *self,
     const struct game_textures *textures)
 {
-    if (!make_sprite(&self->title_background, textures->title,
-        false))
+    if (!make_sprite(&self->title_background, textures->title, false))
         return (false);
     if (!make_sprite(&self->title_cursor, textures->cursor, true))
         return (false);
-    if (!make_sprite(&self->gameplay_background,
-        textures->background, false))
+    if (!make_sprite(&self->gameplay_background, textures->background, false))
         return (false);
     sfSprite_setTextureRect(self->gameplay_background,
         GAMEPLAY_BACKGROUND_RECT);

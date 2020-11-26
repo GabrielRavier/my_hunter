@@ -20,14 +20,13 @@ static const int ERROR_RETURN_VALUE = 84;
 static int usage(const char *program_name)
 {
     my_printf("Usage: %s\n\n"
-              "    --original-resolution starts the game in 256*224, the "
-              "original resolution of the NES\n"
-              "    -h                    displays this message and exits\n\n"
-              "Implements a small Duck Hunt game based on the NES Duck Hunt.\n"
-              "Pressing C and V is equivalent to pressing Start and Select.\n"
-              "Clicking with the mouse is equivalent to shooting with the "
-              "zapper, wherether you're currently pointing at.\n"
-              , program_name);
+        "    --original-resolution starts the game in 256*224, the "
+        "original resolution of the NES\n"
+        "    -h                    displays this message and exits\n\n"
+        "Implements a small Duck Hunt game based on the NES Duck Hunt.\n"
+        "Pressing C and V is equivalent to pressing Start and Select.\n"
+        "Clicking with the mouse is equivalent to shooting with the "
+        "zapper, wherether you're currently pointing at.\n", program_name);
     return (0);
 }
 

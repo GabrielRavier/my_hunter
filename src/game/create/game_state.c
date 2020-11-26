@@ -20,11 +20,9 @@ bool make_game_state(struct game_state *self, struct game *game)
     self->session.clear_screen_for_shoot = false;
     if (!make_scores(&self->scores, game->resources.nes_font))
         return (false);
-    if (!make_nes_text(&self->text_box.text,
-        game->resources.nes_font))
+    if (!make_nes_text(&self->text_box.text, game->resources.nes_font))
         return (false);
-    if (!make_nes_text(&self->current_round.as_text,
-        game->resources.nes_font))
+    if (!make_nes_text(&self->current_round.as_text, game->resources.nes_font))
         return (false);
     self->current_music = NULL;
     self->mode = GAME_MODE_NONE;

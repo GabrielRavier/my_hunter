@@ -32,7 +32,7 @@ static void init_session_duck(struct session_duck *self, struct game *game)
             sfSprite_getPosition(self->sprite).y,
             random_int_between(MIN_INITIAL_AIMED_X_POSITION,
                 MAX_INITIAL_AIMED_X_POSITION) -
-                   sfSprite_getPosition(self->sprite).x);
+            sfSprite_getPosition(self->sprite).x);
     }
 }
 
@@ -48,8 +48,7 @@ void game_init_session(struct game *self)
         self->state.round.ducks[self->state.round.current_ducks_index + 1]
             .state = ROUND_DUCK_STATE_FLYING;
         self->state.session.ducks[1].state = DUCK_STATE_FLYING;
-    }
-    else
+    } else
         self->state.session.ducks[1].state = DUCK_STATE_INACTIVE;
     sfSound_play(self->resources.sounds.duck.sf_sound);
     sfSound_play(self->resources.sounds.flying.sf_sound);

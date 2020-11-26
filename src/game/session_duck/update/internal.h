@@ -11,7 +11,7 @@
 #include "../../../game.h"
 #include <SFML/System/Vector2.h>
 
-void session_duck_update_falling(struct session_duck *self,
-    struct game *game, sfVector2f current_position);
-void session_duck_update_flying(struct session_duck *self,
-    struct game *game, sfVector2f current_position);
+void session_duck_update_falling(struct session_duck *self, struct game *game,
+    sfVector2f current_position);
+void session_duck_update_flying(struct session_duck *self, struct game *game,
+    sfVector2f current_position);

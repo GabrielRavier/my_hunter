@@ -21,13 +21,13 @@ static bool try_shoot_duck(struct session_duck *duck, struct game *game,
     bool got_none_and_there_were_ducks[2])
 {
     sfFloatRect tmp_duck_rect;
-    
+
     if (duck->state == DUCK_STATE_FLYING) {
         duck->draw_shoot_rectangle = true;
         tmp_duck_rect = sfSprite_getGlobalBounds(duck->sprite);
         got_none_and_there_were_ducks[1] = true;
         if (sfFloatRect_contains(&tmp_duck_rect, real_mouse_coordinates.x,
-            real_mouse_coordinates.y)) {
+                real_mouse_coordinates.y)) {
             session_duck_set_state(duck, game, DUCK_STATE_FALLING);
             session_duck_do_score(duck, game);
             got_none_and_there_were_ducks[0] = false;
@@ -50,17 +50,16 @@ static void handle_shooting(struct game *self,
         self->state.session.clear_screen_for_shoot = true;
         for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
             if (try_shoot_duck(&self->state.session.ducks[i], self,
-                real_mouse_coordinates, got_none_and_there_were_ducks))
+                    real_mouse_coordinates, got_none_and_there_were_ducks))
                 break;
     }
     if ((self->state.session.shots_left == 0) &&
-        got_none_and_there_were_ducks[0] &&
-        got_none_and_there_were_ducks[1])
+        got_none_and_there_were_ducks[0] && got_none_and_there_were_ducks[1])
         game_set_mode(self, GAME_MODE_SESSION_FLY_AWAY);
 }
 
 void game_handle_mouse_press(struct game *self,
-     const sfMouseButtonEvent *mouse_button)
+    const sfMouseButtonEvent *mouse_button)
 {
     if (self->state.mode == GAME_MODE_TITLE)
         game_set_mode(self, GAME_MODE_START_ROUND);

@@ -10,5 +10,5 @@
 #include "../round_duck.h"
 #include "../state.h"
 
-void round_duck_update(struct round_duck *self,
-    struct game_state *game_state, size_t id);
+void round_duck_update(struct round_duck *self, struct game_state *game_state,
+    size_t id);

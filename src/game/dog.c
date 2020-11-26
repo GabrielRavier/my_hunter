@@ -33,8 +33,7 @@ void dog_update_walking(sfSprite *self)
     sfSprite_setTextureRect(self, dog_rect);
 }
 
-void dog_update_flying(sfSprite *self,
-    uintmax_t frames_since_mode_begin)
+void dog_update_flying(sfSprite *self, uintmax_t frames_since_mode_begin)
 {
     static const int table_x[42] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,

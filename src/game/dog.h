@@ -11,5 +11,4 @@
 #include <stdint.h>
 
 void dog_update_walking(sfSprite *self);
-void dog_update_flying(sfSprite *self,
-    uintmax_t frames_since_mode_begin);
+void dog_update_flying(sfSprite *self, uintmax_t frames_since_mode_begin);

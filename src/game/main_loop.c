@@ -22,7 +22,7 @@
 static void do_events(struct game *self)
 {
     sfEvent event;
-    
+
     while (sfRenderWindow_pollEvent(self->window, &event)) {
         if (event.type == sfEvtClosed)
             sfRenderWindow_close(self->window);
@@ -35,7 +35,7 @@ static void do_events(struct game *self)
 
 static void do_updates_until_all_dropped_frames_done(struct game *self,
     sfClock *clock, int64_t *elapsed_time)
-{   
+{
     static const int64_t one_frame_in_microseconds = 17000;
 
     *elapsed_time += sfClock_getElapsedTime(clock).microseconds;

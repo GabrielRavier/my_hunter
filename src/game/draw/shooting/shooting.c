@@ -14,7 +14,6 @@ void game_draw_shooting(struct game *self)
     if (self->state.session.clear_screen_for_shoot) {
         self->state.session.clear_screen_for_shoot = false;
         sfRenderWindow_clear(self->window, sfBlack);
-    }
-    else
+    } else
         game_draw_shooting_duck_frame(self);
 }

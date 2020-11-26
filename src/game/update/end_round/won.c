@@ -35,20 +35,18 @@ static void do_perfect_or_finish(struct game *self, size_t killed_ducks)
 
 void game_update_end_round_won(struct game *self, size_t killed_ducks)
 {
-    if (((uintmax_t)self->state.round.frame_finished_sorting +
-        FRAME_START_MUSIC_AND_FLASHING_DUCKS) ==
+    if (((uintmax_t) self->state.round.frame_finished_sorting +
+            FRAME_START_MUSIC_AND_FLASHING_DUCKS) ==
         self->state.frames_since_mode_begin) {
         sfSound_play(self->resources.sounds.end_round_success.sf_sound);
         for (size_t i = 0; i < killed_ducks; ++i)
             self->state.round.ducks[i].state =
                 ROUND_DUCK_STATE_END_ROUND_FLASHING;
     }
-    if (((uintmax_t)self->state.round.frame_finished_sorting +
-        FRAME_DO_PERFECT_OR_FINISH) ==
-        self->state.frames_since_mode_begin)
+    if (((uintmax_t) self->state.round.frame_finished_sorting +
+            FRAME_DO_PERFECT_OR_FINISH) == self->state.frames_since_mode_begin)
         do_perfect_or_finish(self, killed_ducks);
-    if (((uintmax_t)self->state.round.frame_finished_sorting +
-        FRAME_FINISH_AFTER_PERFECT) ==
-        self->state.frames_since_mode_begin)
+    if (((uintmax_t) self->state.round.frame_finished_sorting +
+            FRAME_FINISH_AFTER_PERFECT) == self->state.frames_since_mode_begin)
         game_set_mode(self, GAME_MODE_START_ROUND);
 }

@@ -77,7 +77,7 @@ static void do_normal_flying_collision(struct session_duck *self,
 static void do_collision(struct session_duck *self, struct game *game)
 {
     sfFloatRect self_bounds = sfSprite_getGlobalBounds(self->sprite);
-    
+
     if (game->state.session.shots_left == 0 ||
         game->state.mode == GAME_MODE_SESSION_FLY_AWAY) {
         if (((self_bounds.left + self_bounds.width) < 0) ||
@@ -93,14 +93,14 @@ static void do_collision(struct session_duck *self, struct game *game)
     }
 }
 
-void session_duck_update_flying(struct session_duck *self,
-    struct game *game, sfVector2f current_position)
+void session_duck_update_flying(struct session_duck *self, struct game *game,
+    sfVector2f current_position)
 {
-    const int which_sprite = ((game->state.frames_since_mode_begin % (3 + 3 +
-        5)) >= 3) + ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >=
-        (3 + 3));
+    const int which_sprite =
+        ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >= 3) +
+        ((game->state.frames_since_mode_begin % (3 + 3 + 5)) >= (3 + 3));
     sfIntRect final_rect;
-    
+
     if (game->state.session.shots_left == 0)
         self->angle = -M_PI / 2;
     sfSprite_setPosition(self->sprite, (sfVector2f){

@@ -32,8 +32,7 @@ static void do_color(float *result, int color)
         *result *= RED_DUCK_SPEED_MULTIPLIER;
 }
 
-float game_get_duck_speed(struct game_state *self,
-    struct session_duck *duck)
+float game_get_duck_speed(struct game_state *self, struct session_duck *duck)
 {
     float result = INITIAL_DUCK_SPEED;
 

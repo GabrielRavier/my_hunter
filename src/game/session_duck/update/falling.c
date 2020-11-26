@@ -23,12 +23,13 @@ static const sfVector2f POSITION_OUT_OF_SCREEN = {1000, 1000};
 static const int DUCK_DEAD_Y = 184 - (119 - 89);
 static const int FRAMES_SCORE_STAYS_VISIBLE = 45;
 
-static void do_really_falling(struct session_duck *self, struct game *game, sfVector2f current_position)
+static void do_really_falling(struct session_duck *self, struct game *game,
+    sfVector2f current_position)
 {
     sfIntRect final_rect;
 
-    if (self->frames_since_state_change > (FRAME_START_FALLING +
-        FRAMES_SCORE_STAYS_VISIBLE))
+    if (self->frames_since_state_change >
+        (FRAME_START_FALLING + FRAMES_SCORE_STAYS_VISIBLE))
         sfText_setPosition(self->score_text, POSITION_OUT_OF_SCREEN);
     if ((self->frames_since_state_change % 2) == 0)
         ++current_position.x;
@@ -46,8 +47,8 @@ static void do_really_falling(struct session_duck *self, struct game *game, sfVe
     sfSprite_setTextureRect(self->sprite, final_rect);
 }
 
-void session_duck_update_falling(struct session_duck *self,
-    struct game *game, sfVector2f current_position)
+void session_duck_update_falling(struct session_duck *self, struct game *game,
+    sfVector2f current_position)
 {
     sfIntRect final_rect;
 

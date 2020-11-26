@@ -25,4 +25,3 @@ void text_set_printf(sfText *text, const char *format, ...)
     sfText_setString(text, formatted_string);
     free(formatted_string);
 }
-

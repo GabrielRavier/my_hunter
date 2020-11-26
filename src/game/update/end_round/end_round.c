@@ -24,4 +24,3 @@ void game_update_end_round(struct game *self)
     else
         game_update_end_round_after_sorting(self);
 }
-

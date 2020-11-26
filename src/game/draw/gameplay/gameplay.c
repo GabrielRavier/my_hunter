@@ -28,13 +28,13 @@ static void draw_session_ducks(struct game *self)
 static void do_draw_dog_before_background(struct game *self)
 {
     if ((self->state.mode == GAME_MODE_START_ROUND ||
-        self->state.mode == GAME_MODE_END_SESSION ||
-        self->state.mode == GAME_MODE_END_ROUND) &&
+            self->state.mode == GAME_MODE_END_SESSION ||
+            self->state.mode == GAME_MODE_END_ROUND) &&
         (!(self->state.mode == GAME_MODE_START_ROUND) ||
-        self->state.frames_since_mode_begin >
-        FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND))
-            sfRenderWindow_drawSprite(self->window, self->resources.sprites.dog,
-                NULL);
+            self->state.frames_since_mode_begin >
+            FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND))
+        sfRenderWindow_drawSprite(self->window, self->resources.sprites.dog,
+            NULL);
 }
 
 static void do_draw_dog_after_background(struct game *self)

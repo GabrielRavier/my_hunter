@@ -19,12 +19,12 @@ void game_update_end_round_after_sorting(struct game *self)
     if (self->state.round.frame_finished_sorting == -1)
         self->state.round.frame_finished_sorting =
             self->state.frames_since_mode_begin;
-    for (killed_ducks = 0; killed_ducks <
-        MY_ARRAY_SIZE(self->state.round.ducks); ++killed_ducks)
+    for (killed_ducks = 0;
+        killed_ducks < MY_ARRAY_SIZE(self->state.round.ducks); ++killed_ducks)
         if ((self->state.round.ducks[killed_ducks].state !=
-            ROUND_DUCK_STATE_DEAD) &&
+                ROUND_DUCK_STATE_DEAD) &&
             (self->state.round.ducks[killed_ducks].state !=
-            ROUND_DUCK_STATE_END_ROUND_FLASHING))
+                ROUND_DUCK_STATE_END_ROUND_FLASHING))
             break;
     if (killed_ducks < ((size_t)self->state.current_round.as_int <
         (MY_ARRAY_SIZE(ROUNDS_THRESHOLD_REQUIRED) - 1) ?
