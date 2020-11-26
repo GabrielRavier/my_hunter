@@ -86,8 +86,8 @@ static void do_collision(struct session_duck *self, struct game *game)
             session_duck_set_state(self, game, DUCK_STATE_INACTIVE);
     } else
         do_normal_flying_collision(self, game, self_bounds);
-    if ((self_bounds.top + self_bounds.height) > DUCK_HIGHEST_Y &&
-        sinf(self->angle > 0)) {
+    if (((self_bounds.top + self_bounds.height) > DUCK_HIGHEST_Y) &&
+        (sinf(self->angle) > 0)) {
         self->angle = -self->angle + get_random_angle_deviation();
         session_duck_update(self, game);
     }
