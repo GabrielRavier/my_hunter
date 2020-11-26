@@ -5,7 +5,7 @@
 ** Implements game_draw_shoot_frame
 */
 
-#include "shoot_frame.h"
+#include "duck_frame.h"
 #include "my/assert.h"
 #include "my/macros.h"
 #include <SFML/Graphics/Sprite.h>
@@ -29,7 +29,7 @@ static void do_session_duck(sfRenderWindow *window, struct session_duck *duck,
     }
 }
 
-void game_draw_shoot_frame(struct game *self)
+void game_draw_shooting_duck_frame(struct game *self)
 {
     sfRectangleShape *duck_white_rectangle = sfRectangleShape_create();
 

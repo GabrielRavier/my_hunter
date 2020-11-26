@@ -2,11 +2,11 @@
 ** EPITECH PROJECT, 2020
 ** myhunter
 ** File description:
-** Declare game_draw_shoot_frame
+** Declares game_draw_title
 */
 
 #pragma once
 
 #include "../../game.h"
 
-void game_draw_shoot_frame(struct game *self);
+void game_draw_title(struct game *self);
