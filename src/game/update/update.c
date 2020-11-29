@@ -9,6 +9,7 @@
 #include "do.h"
 #include "end_round.h"
 #include "end_session.h"
+#include "revenge.h"
 #include "start_round.h"
 #include "title.h"
 #include "../change_music.h"
@@ -67,4 +68,6 @@ void game_update(struct game *self)
         game_update_end_session(self);
     if (self->state.mode == GAME_MODE_END_ROUND)
         game_update_end_round(self);
+    if (self->state.mode == GAME_MODE_REVENGE)
+        game_update_revenge(self);
 }

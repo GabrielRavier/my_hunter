@@ -16,6 +16,7 @@
 
 static const uintmax_t FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND =
     368 + 18;
+static const uintmax_t FRAME_REVENGE_WALKING_START = 8 * 2 + 4 + 15 + 10;
 
 static void draw_session_ducks(struct game *self)
 {
@@ -29,21 +30,38 @@ static void do_draw_dog_before_background(struct game *self)
 {
     if ((self->state.mode == GAME_MODE_START_ROUND ||
             self->state.mode == GAME_MODE_END_SESSION ||
-            self->state.mode == GAME_MODE_END_ROUND) &&
+            self->state.mode == GAME_MODE_END_ROUND ||
+            self->state.mode == GAME_MODE_REVENGE) &&
         (!(self->state.mode == GAME_MODE_START_ROUND) ||
             self->state.frames_since_mode_begin >
-            FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND))
+            FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND) &&
+        (!(self->state.mode == GAME_MODE_REVENGE &&
+            self->state.frames_since_mode_begin >=
+            FRAME_REVENGE_WALKING_START)))
         sfRenderWindow_drawSprite(self->window, self->resources.sprites.dog,
             NULL);
 }
 
 static void do_draw_dog_after_background(struct game *self)
 {
-    if (self->state.mode == GAME_MODE_START_ROUND)
-        if (self->state.frames_since_mode_begin <=
-            FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND)
-            sfRenderWindow_drawSprite(self->window, self->resources.sprites.dog,
-                NULL);
+    if ((self->state.mode == GAME_MODE_START_ROUND &&
+        (self->state.frames_since_mode_begin <=
+        FRAME_DOG_START_GOING_BEHIND_GAMEPLAY_BACKGROUND)) ||
+        (self->state.mode == GAME_MODE_REVENGE &&
+        (self->state.frames_since_mode_begin >=
+        FRAME_REVENGE_WALKING_START)))
+        sfRenderWindow_drawSprite(self->window, self->resources.sprites.dog,
+            NULL);
+}
+
+static void do_ducks(struct game *self)
+{
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.round.ducks); ++i)
+        sfRenderWindow_drawSprite(self->window,
+            self->state.round.ducks[i].sprite, NULL);
+    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
+        sfRenderWindow_drawText(self->window,
+            self->state.session.ducks[i].score_text, NULL);
 }
 
 void game_draw_gameplay(struct game *self)
@@ -61,10 +79,7 @@ void game_draw_gameplay(struct game *self)
     sfRenderWindow_drawText(self->window, self->state.scores.current_as_text,
         NULL);
     do_draw_dog_after_background(self);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.round.ducks); ++i)
-        sfRenderWindow_drawSprite(self->window,
-            self->state.round.ducks[i].sprite, NULL);
-    for (size_t i = 0; i < MY_ARRAY_SIZE(self->state.session.ducks); ++i)
-        sfRenderWindow_drawText(self->window,
-            self->state.session.ducks[i].score_text, NULL);
+    do_ducks(self);
+    if (self->state.mode == GAME_MODE_REVENGE)
+        sfRenderWindow_drawText(self->window, self->state.revenge.text, NULL);
 }

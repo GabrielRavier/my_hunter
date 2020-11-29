@@ -30,11 +30,14 @@ static void game_exit_session(struct game_sounds *sounds)
     sfSound_stop(sounds->flying.sf_sound);
 }
 
-static void game_exit_end_session(struct game_state *state,
-    enum game_mode *new_mode)
+static void game_exit_end_session_or_revenge(struct game_state *state,
+    enum game_mode *new_mode, struct game_sounds *sounds)
 {
-    state->round.current_ducks_index += state->title.selected_game + 1;
-    if (state->round.current_ducks_index >= MY_ARRAY_SIZE(state->round.ducks))
+    sfSound_stop(sounds->dog_mocking.sf_sound);
+    if (*new_mode != GAME_MODE_REVENGE)
+        state->round.current_ducks_index += state->title.selected_game + 1;
+    if (state->round.current_ducks_index >= MY_ARRAY_SIZE(state->round.ducks) &&
+        *new_mode != GAME_MODE_REVENGE)
         *new_mode = GAME_MODE_END_ROUND;
 }
 
@@ -46,6 +49,8 @@ void game_exit_mode(struct game *self, enum game_mode *new_mode)
         self->state.mode == GAME_MODE_SESSION_FLY_AWAY)
         if (*new_mode != GAME_MODE_SESSION_FLY_AWAY)
             game_exit_session(&self->resources.sounds);
-    if (self->state.mode == GAME_MODE_END_SESSION)
-        game_exit_end_session(&self->state, new_mode);
+    if (self->state.mode == GAME_MODE_END_SESSION ||
+        self->state.mode == GAME_MODE_REVENGE)
+        game_exit_end_session_or_revenge(&self->state, new_mode,
+            &self->resources.sounds);
 }

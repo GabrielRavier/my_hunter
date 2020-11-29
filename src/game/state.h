@@ -10,6 +10,7 @@
 #include "scores.h"
 #include "session_state.h"
 #include "round_state.h"
+#include "revenge_state.h"
 #include "round.h"
 #include "title_state.h"
 #include "text_box.h"
@@ -24,6 +25,7 @@ struct game_state {
     struct game_round current_round;
     struct game_title_state title;
     struct game_text_box text_box;
+    struct game_revenge_state revenge;
     uintmax_t frames_since_mode_begin;
     enum game_mode {
         GAME_MODE_NONE,
@@ -32,6 +34,7 @@ struct game_state {
         GAME_MODE_SESSION,
         GAME_MODE_SESSION_FLY_AWAY,
         GAME_MODE_END_SESSION,
+        GAME_MODE_REVENGE,
         GAME_MODE_END_ROUND
     } mode;
     sfMusic *current_music;

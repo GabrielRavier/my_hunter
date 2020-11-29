@@ -22,6 +22,7 @@ void game_draw(struct game *self)
         self->state.mode == GAME_MODE_SESSION ||
         self->state.mode == GAME_MODE_SESSION_FLY_AWAY ||
         self->state.mode == GAME_MODE_END_SESSION ||
+        self->state.mode == GAME_MODE_REVENGE ||
         self->state.mode == GAME_MODE_END_ROUND)
         game_draw_gameplay(self);
     if (self->state.mode == GAME_MODE_SESSION_FLY_AWAY)

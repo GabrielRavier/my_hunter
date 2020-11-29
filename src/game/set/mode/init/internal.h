@@ -14,3 +14,4 @@ void game_init_title(struct game_state *state);
 void game_init_start_round(struct game *self);
 void game_init_session(struct game *self);
 void game_init_end_round(struct game *self);
+void game_init_revenge(struct game *self);

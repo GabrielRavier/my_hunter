@@ -18,4 +18,6 @@ void game_init_mode(struct game *self)
         game_init_session(self);
     if (self->state.mode == GAME_MODE_END_ROUND)
         game_init_end_round(self);
+    if (self->state.mode == GAME_MODE_REVENGE)
+        game_init_revenge(self);
 }
