@@ -59,6 +59,7 @@ static void game_destroy_resources(struct game_resources *self)
 void game_destroy(struct game *self)
 {
     sfMusic_destroy(self->state.current_music);
+    sfText_destroy(self->state.revenge.text);
     sfText_destroy(self->state.text_box.text);
     sfText_destroy(self->state.current_round.as_text);
     sfText_destroy(self->state.scores.current_as_text);
