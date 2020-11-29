@@ -51,7 +51,6 @@ static void do_round_ducks_if_appropriate(struct game *self)
             round_duck_update(&self->state.round.ducks[i], &self->state, i);
 }
 
-// The music resets every 2800 frames or so
 void game_update(struct game *self)
 {
     if (self->state.mode == GAME_MODE_TITLE)

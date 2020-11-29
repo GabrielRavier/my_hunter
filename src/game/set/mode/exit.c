@@ -14,6 +14,8 @@
 
 static const sfIntRect GAMEPLAY_BACKGROUND_RECT = {0, 8, 255, 224};
 
+// We start at round 0 : start_round will increase the round by 1 when
+// initialized
 static void game_exit_title(struct game *self)
 {
     game_set_current_round(&self->state.current_round, 0);

@@ -14,6 +14,7 @@ static const int TITLE_CURSOR_X = 48;
 static const int TITLE_CURSOR_BASE_Y = 129;
 static const int TITLE_CURSOR_Y_PER_GAME = 16;
 
+// The music resets every 2800 frames or so
 void game_update_title(struct game *self)
 {
     if (!(self->state.frames_since_mode_begin % FRAMES_PER_TITLE_MUSIC_PLAY))
