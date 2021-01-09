@@ -80,7 +80,7 @@ tests_binary: $(TESTS_OBJECT_FILES) ../libmy.a
 	$(CC) -o $@ $(CFLAGS) -L.. $(TESTS_OBJECT_FILES) -lcriterion -lmy --coverage
 
 ../../include/%.h: include/%.h
-	@mkdir --parents ../../include/my/internal
+	@mkdir --parents ../../include/my
 	cp $< $@
 
 obj/%.o: %.s
